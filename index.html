@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AEGIS — Autonomous Cyber Defense System</title>
+    <meta name="description"
+        content="AEGIS is a self-evolving autonomous cybersecurity defense architecture integrating real-time monitoring, anomaly detection, behavioral analysis, and adaptive response mechanisms." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+
+<body>
+    <!-- ═══════════════════════════════ LOGIN SCREEN ═══════════════════════════════ -->
+    <div id="login-overlay" class="login-overlay">
+        <div class="login-card">
+            <div class="login-logo">
+                <svg viewBox="0 0 40 40" fill="none" width="60" height="60">
+                    <polygon points="20,2 38,11 38,29 20,38 2,29 2,11" stroke="url(#g1-login)" stroke-width="2"
+                        fill="none" />
+                    <polygon points="20,8 32,14 32,26 20,32 8,26 8,14" fill="url(#g2-login)" opacity="0.15" />
+                    <circle cx="20" cy="20" r="5" fill="url(#g1-login)" />
+                    <defs>
+                        <linearGradient id="g1-login" x1="0" y1="0" x2="40" y2="40">
+                            <stop offset="0%" stop-color="#7ec8c8" />
+                            <stop offset="100%" stop-color="#c08dbb" />
+                        </linearGradient>
+                        <linearGradient id="g2-login" x1="0" y1="0" x2="40" y2="40">
+                            <stop offset="0%" stop-color="#7ec8c8" />
+                            <stop offset="100%" stop-color="#c08dbb" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+            </div>
+            <h1 class="login-title">AEGIS Authentication</h1>
+            <p class="login-subtitle">Enter your registered organizational email to access the command dashboard.</p>
+
+            <form id="login-form" class="login-form">
+                <div class="input-group">
+                    <label for="login-email">Email Address</label>
+                    <input type="email" id="login-email" placeholder="agent@aegis.system" required />
+                </div>
+                <div class="input-group">
+                    <label for="login-password">Access Token (Optional)</label>
+                    <input type="password" id="login-password" placeholder="•••••••••" />
+                </div>
+
+                <button type="submit" class="btn-primary w-full" id="login-btn">
+                    <span>Authenticate</span>
+                    <span class="auth-spinner" style="display:none;">⟳</span>
+                </button>
+            </form>
+
+            <div class="login-divider">
+                <span>OR</span>
+            </div>
+
+            <button type="button" class="btn-google w-full" id="google-login-btn">
+                <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
+                    <g transform="matrix(1, 0, 0, 1, 27.009001, -39.238998)">
+                        <path fill="#4285F4"
+                            d="M -3.264 51.509 C -3.264 50.719 -3.334 49.969 -3.454 49.239 L -14.754 49.239 L -14.754 53.749 L -8.284 53.749 C -8.574 55.229 -9.424 56.479 -10.684 57.329 L -10.684 60.329 L -6.824 60.329 C -4.564 58.239 -3.264 55.159 -3.264 51.509 Z" />
+                        <path fill="#34A853"
+                            d="M -14.754 63.239 C -11.514 63.239 -8.804 62.159 -6.824 60.329 L -10.684 57.329 C -11.764 58.049 -13.134 58.489 -14.754 58.489 C -17.884 58.489 -20.534 56.379 -21.484 53.529 L -25.464 53.529 L -25.464 56.619 C -23.494 60.539 -19.444 63.239 -14.754 63.239 Z" />
+                        <path fill="#FBBC05"
+                            d="M -21.484 53.529 C -21.734 52.809 -21.864 52.039 -21.864 51.239 C -21.864 50.439 -21.724 49.669 -21.484 48.949 L -21.484 45.859 L -25.464 45.859 C -26.284 47.479 -26.754 49.299 -26.754 51.239 C -26.754 53.179 -26.284 54.999 -25.464 56.619 L -21.484 53.529 Z" />
+                        <path fill="#EA4335"
+                            d="M -14.754 43.989 C -12.984 43.989 -11.404 44.599 -10.154 45.789 L -6.734 42.369 C -8.804 40.429 -11.514 39.239 -14.754 39.239 C -19.444 39.239 -23.494 41.939 -25.464 45.859 L -21.484 48.949 C -20.534 46.099 -17.884 43.989 -14.754 43.989 Z" />
+                    </g>
+                </svg>
+                <span>Continue with Google</span>
+                <span class="auth-spinner-google" style="display:none; color: #aaa;">⟳</span>
+            </button>
+
+            <div class="login-footer">
+                <p>Secured via Zero Trust Architecture</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════ GOOGLE ACCOUNT SELECTOR (MOCK) ═══════════════════════════════ -->
+    <div id="google-sso-overlay" class="login-overlay hidden">
+        <div class="login-card" style="width: 400px; padding: 32px 24px;">
+            <div style="margin-bottom: 24px;">
+                <svg viewBox="0 0 24 24" width="32" height="32" xmlns="http://www.w3.org/2000/svg">
+                    <g transform="matrix(1, 0, 0, 1, 27.009001, -39.238998)">
+                        <path fill="#4285F4"
+                            d="M -3.264 51.509 C -3.264 50.719 -3.334 49.969 -3.454 49.239 L -14.754 49.239 L -14.754 53.749 L -8.284 53.749 C -8.574 55.229 -9.424 56.479 -10.684 57.329 L -10.684 60.329 L -6.824 60.329 C -4.564 58.239 -3.264 55.159 -3.264 51.509 Z" />
+                        <path fill="#34A853"
+                            d="M -14.754 63.239 C -11.514 63.239 -8.804 62.159 -6.824 60.329 L -10.684 57.329 C -11.764 58.049 -13.134 58.489 -14.754 58.489 C -17.884 58.489 -20.534 56.379 -21.484 53.529 L -25.464 53.529 L -25.464 56.619 C -23.494 60.539 -19.444 63.239 -14.754 63.239 Z" />
+                        <path fill="#FBBC05"
+                            d="M -21.484 53.529 C -21.734 52.809 -21.864 52.039 -21.864 51.239 C -21.864 50.439 -21.724 49.669 -21.484 48.949 L -21.484 45.859 L -25.464 45.859 C -26.284 47.479 -26.754 49.299 -26.754 51.239 C -26.754 53.179 -26.284 54.999 -25.464 56.619 L -21.484 53.529 Z" />
+                        <path fill="#EA4335"
+                            d="M -14.754 43.989 C -12.984 43.989 -11.404 44.599 -10.154 45.789 L -6.734 42.369 C -8.804 40.429 -11.514 39.239 -14.754 39.239 C -19.444 39.239 -23.494 41.939 -25.464 45.859 L -21.484 48.949 C -20.534 46.099 -17.884 43.989 -14.754 43.989 Z" />
+                    </g>
+                </svg>
+            </div>
+            <h2 style="font-size: 1.4rem; font-weight: 500; margin-bottom: 8px;">Sign in with Google</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 24px; font-size: 0.95rem;">Choose an account to
+                continue to AEGIS</p>
+
+            <div class="account-list" style="width: 100%; display: flex; flex-direction: column; gap: 8px;">
+                <button class="account-item" onclick="completeGoogleLogin('user@organization.corp')">
+                    <div class="acc-avatar" style="background: var(--purple);">U</div>
+                    <div class="acc-info">
+                        <span class="acc-name">Authorized User</span>
+                        <span class="acc-email">user@organization.corp</span>
+                    </div>
+                </button>
+                <button class="account-item" onclick="completeGoogleLogin('admin@aegis.system')">
+                    <div class="acc-avatar" style="background: var(--cyan);">A</div>
+                    <div class="acc-info">
+                        <span class="acc-name">System Admin</span>
+                        <span class="acc-email">admin@aegis.system</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════ SIDEBAR ═══════════════════════════════ -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-logo">
+            <div class="logo-icon">
+                <svg viewBox="0 0 40 40" fill="none">
+                    <polygon points="20,2 38,11 38,29 20,38 2,29 2,11" stroke="url(#g1)" stroke-width="2" fill="none" />
+                    <polygon points="20,8 32,14 32,26 20,32 8,26 8,14" fill="url(#g2)" opacity="0.15" />
+                    <circle cx="20" cy="20" r="5" fill="url(#g1)" />
+                    <defs>
+                        <linearGradient id="g1" x1="0" y1="0" x2="40" y2="40">
+                            <stop offset="0%" stop-color="#7ec8c8" />
+                            <stop offset="100%" stop-color="#c08dbb" />
+                        </linearGradient>
+                        <linearGradient id="g2" x1="0" y1="0" x2="40" y2="40">
+                            <stop offset="0%" stop-color="#7ec8c8" />
+                            <stop offset="100%" stop-color="#c08dbb" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+            </div>
+            <div class="logo-text">
+                <span class="logo-name">AEGIS</span>
+                <span class="logo-sub">Cyber Defense OS</span>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-item active" id="nav-dashboard" onclick="showPage('dashboard')">
+                <span class="nav-icon">⬡</span><span>Command Center</span>
+            </a>
+            <a href="#" class="nav-item" id="nav-monitor" onclick="showPage('monitor')">
+                <span class="nav-icon">◈</span><span>Live Monitor</span>
+            </a>
+            <a href="#" class="nav-item" id="nav-anomaly" onclick="showPage('anomaly')">
+                <span class="nav-icon">⚠</span><span>Anomaly Detection</span>
+            </a>
+            <a href="#" class="nav-item" id="nav-behavior" onclick="showPage('behavior')">
+                <span class="nav-icon">◉</span><span>Behavioral Analysis</span>
+            </a>
+            <a href="#" class="nav-item" id="nav-response" onclick="showPage('response')">
+                <span class="nav-icon">◈</span><span>Adaptive Response</span>
+            </a>
+            <a href="#" class="nav-item" id="nav-forensics" onclick="showPage('forensics')">
+                <span class="nav-icon">⬖</span><span>Forensic Logs</span>
+            </a>
+            <a href="#" class="nav-item" id="nav-learning" onclick="showPage('learning')">
+                <span class="nav-icon">✦</span><span>ML Engine</span>
+            </a>
+            <a href="#" class="nav-item" id="nav-agents" onclick="showPage('agents')">
+                <span class="nav-icon">◇</span><span>Agent Network</span>
+            </a>
+
+        </nav>
+
+        <div class="sidebar-status">
+            <div class="status-dot active"></div>
+            <span>System Active</span>
+            <span class="status-mode" id="sidebar-mode">PROTECT</span>
+        </div>
+    </aside>
+
+    <!-- ═══════════════════════════════ MAIN ═══════════════════════════════════ -->
+    <main class="main-content">
+
+        <!-- TOP BAR -->
+        <header class="topbar">
+            <div class="topbar-left">
+                <div class="threat-badge" id="global-threat-badge">
+                    <span class="threat-label">THREAT LEVEL</span>
+                    <span class="threat-value" id="global-threat-value">MODERATE</span>
+                </div>
+                <div class="topbar-clock" id="topbar-clock"></div>
+            </div>
+            <div class="topbar-right">
+                <div class="topbar-stat">
+                    <span class="ts-label">Events/sec</span>
+                    <span class="ts-val" id="events-per-sec">0</span>
+                </div>
+                <div class="topbar-stat">
+                    <span class="ts-label">Blocked</span>
+                    <span class="ts-val" id="blocked-count">0</span>
+                </div>
+                <div class="topbar-stat">
+                    <span class="ts-label">Nodes</span>
+                    <span class="ts-val">247</span>
+                </div>
+                <button class="btn-simulate" id="btn-simulate" onclick="triggerSimulatedAttack()">
+                    Simulate Attack
+                </button>
+            </div>
+        </header>
+
+        <!-- ══════════════ PAGE: DASHBOARD ══════════════ -->
+        <div class="page active" id="page-dashboard">
+            <div class="page-header">
+                <h1>Command Center</h1>
+                <p>Real-time autonomous threat intelligence and defense overview</p>
+            </div>
+
+            <div class="kpi-grid">
+                <div class="kpi-card critical">
+                    <div class="kpi-icon kpi-icon--shield">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                            <path d="M9 12l2 2 4-4" />
+                        </svg>
+                    </div>
+                    <div class="kpi-info">
+                        <span class="kpi-label">Threats Neutralized</span>
+                        <span class="kpi-value" id="kpi-neutralized">0</span>
+                        <span class="kpi-delta positive">↑ Auto-mitigated</span>
+                    </div>
+                    <div class="kpi-sparkline" id="spark-neutralized"></div>
+                </div>
+                <div class="kpi-card warning">
+                    <div class="kpi-icon kpi-icon--radar">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <circle cx="12" cy="12" r="6" />
+                            <circle cx="12" cy="12" r="2" />
+                            <line x1="12" y1="2" x2="12" y2="6" />
+                            <line x1="12" y1="18" x2="12" y2="22" />
+                        </svg>
+                    </div>
+                    <div class="kpi-info">
+                        <span class="kpi-label">Anomalies Detected</span>
+                        <span class="kpi-value" id="kpi-anomalies">0</span>
+                        <span class="kpi-delta">Last 60s</span>
+                    </div>
+                    <div class="kpi-sparkline" id="spark-anomalies"></div>
+                </div>
+                <div class="kpi-card info">
+                    <div class="kpi-icon kpi-icon--brain">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="5" r="2.5" />
+                            <circle cx="6" cy="12" r="2.5" />
+                            <circle cx="18" cy="12" r="2.5" />
+                            <circle cx="12" cy="19" r="2.5" />
+                            <line x1="12" y1="7.5" x2="12" y2="16.5" />
+                            <line x1="8.2" y1="10.5" x2="15.8" y2="13.5" />
+                            <line x1="15.8" y1="10.5" x2="8.2" y2="13.5" />
+                        </svg>
+                    </div>
+                    <div class="kpi-info">
+                        <span class="kpi-label">ML Model Accuracy</span>
+                        <span class="kpi-value" id="kpi-accuracy">97.4%</span>
+                        <span class="kpi-delta positive">↑ Self-learning</span>
+                    </div>
+                    <div class="kpi-sparkline" id="spark-accuracy"></div>
+                </div>
+                <div class="kpi-card success">
+                    <div class="kpi-icon kpi-icon--pulse">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="1,12 5,12 8,5 11,19 14,8 17,14 20,12 23,12" />
+                        </svg>
+                    </div>
+                    <div class="kpi-info">
+                        <span class="kpi-label">System Availability</span>
+                        <span class="kpi-value" id="kpi-uptime">99.98%</span>
+                        <span class="kpi-delta positive">SLA Met</span>
+                    </div>
+                    <div class="kpi-sparkline" id="spark-uptime"></div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <!-- Risk Heatmap -->
+                <div class="card wide">
+                    <div class="card-header">
+                        <h2>Risk Propagation Heatmap</h2>
+                        <span class="card-badge live">LIVE</span>
+                    </div>
+                    <div class="heatmap-container">
+                        <canvas id="heatmapCanvas" width="700" height="200"></canvas>
+                    </div>
+                </div>
+
+                <!-- Attack Vector Radar -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Attack Vector Analysis</h2>
+                        <span class="card-badge">Real-time</span>
+                    </div>
+                    <canvas id="radarCanvas" width="260" height="260"></canvas>
+                </div>
+
+                <!-- Network Traffic -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Network Traffic Flow</h2>
+                        <span class="card-badge live">LIVE</span>
+                    </div>
+                    <canvas id="trafficCanvas" width="280" height="200"></canvas>
+                </div>
+
+                <!-- Active Threats Feed -->
+                <div class="card tall">
+                    <div class="card-header">
+                        <h2>Threat Intelligence Feed</h2>
+                        <span class="card-badge live">LIVE</span>
+                    </div>
+                    <div class="threat-feed" id="threat-feed"></div>
+                </div>
+
+                <!-- Defense Layers -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Defense Layer Status</h2>
+                    </div>
+                    <div class="defense-layers" id="defense-layers">
+                        <div class="layer-item" data-layer="Perimeter Firewall">
+                            <div class="layer-info"><span class="layer-name">Perimeter Firewall</span><span
+                                    class="layer-status active">ACTIVE</span></div>
+                            <div class="layer-bar">
+                                <div class="layer-fill" style="width:94%"></div>
+                            </div>
+                            <span class="layer-pct">94%</span>
+                        </div>
+                        <div class="layer-item" data-layer="Intrusion Detection">
+                            <div class="layer-info"><span class="layer-name">IDS/IPS Engine</span><span
+                                    class="layer-status active">ACTIVE</span></div>
+                            <div class="layer-bar">
+                                <div class="layer-fill" style="width:88%"></div>
+                            </div>
+                            <span class="layer-pct">88%</span>
+                        </div>
+                        <div class="layer-item" data-layer="Behavioral AI">
+                            <div class="layer-info"><span class="layer-name">Behavioral AI</span><span
+                                    class="layer-status active">ACTIVE</span></div>
+                            <div class="layer-bar">
+                                <div class="layer-fill" style="width:97%"></div>
+                            </div>
+                            <span class="layer-pct">97%</span>
+                        </div>
+                        <div class="layer-item" data-layer="Endpoint Protection">
+                            <div class="layer-info"><span class="layer-name">Endpoint Shield</span><span
+                                    class="layer-status active">ACTIVE</span></div>
+                            <div class="layer-bar">
+                                <div class="layer-fill" style="width:91%"></div>
+                            </div>
+                            <span class="layer-pct">91%</span>
+                        </div>
+                        <div class="layer-item" data-layer="Deception Grid">
+                            <div class="layer-info"><span class="layer-name">Deception Grid</span><span
+                                    class="layer-status warning">STANDBY</span></div>
+                            <div class="layer-bar">
+                                <div class="layer-fill" style="width:72%"></div>
+                            </div>
+                            <span class="layer-pct">72%</span>
+                        </div>
+                        <div class="layer-item" data-layer="Quantum Encryption">
+                            <div class="layer-info"><span class="layer-name">Data Encryption</span><span
+                                    class="layer-status active">ACTIVE</span></div>
+                            <div class="layer-bar">
+                                <div class="layer-fill" style="width:100%"></div>
+                            </div>
+                            <span class="layer-pct">100%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════ PAGE: LIVE MONITOR ══════════════ -->
+        <div class="page" id="page-monitor">
+            <div class="page-header">
+                <h1>Live Network Monitor</h1>
+                <p>Real-time packet inspection, event streaming & topology visualization</p>
+            </div>
+
+            <div class="monitor-grid">
+                <div class="card full-width">
+                    <div class="card-header">
+                        <h2>Network Event Stream</h2>
+                        <span class="card-badge live">STREAMING</span>
+                        <div class="stream-controls">
+                            <button class="btn-sm" onclick="toggleStream()" id="stream-toggle">Pause</button>
+                            <button class="btn-sm" onclick="clearStream()">Clear</button>
+                        </div>
+                    </div>
+                    <div class="event-stream" id="event-stream"></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Protocol Distribution</h2>
+                    </div>
+                    <canvas id="protocolCanvas" width="300" height="200"></canvas>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Geographic Threat Origins</h2>
+                    </div>
+                    <div class="geo-map" id="geo-map" style="height: 220px;">
+                    </div>
+                    <div class="geo-legend">
+                        <span class="geo-key safe">● Trusted</span>
+                        <span class="geo-key danger">● Threat Origin</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Top Attacking IPs</h2>
+                    </div>
+                    <div class="ip-table" id="ip-table"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════ PAGE: ANOMALY DETECTION ══════════════ -->
+        <div class="page" id="page-anomaly">
+            <div class="page-header">
+                <h1>Anomaly Detection Engine</h1>
+                <p>Statistical deviation analysis, Z-score computation & ML-based outlier identification</p>
+            </div>
+
+            <div class="anomaly-grid">
+                <div class="card full-width">
+                    <div class="card-header">
+                        <h2>Behavioral Baseline vs. Observed</h2>
+                        <span class="card-badge live">ADAPTIVE THRESHOLD</span>
+                    </div>
+                    <canvas id="anomalyCanvas" width="900" height="220"></canvas>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Anomaly Categories</h2>
+                    </div>
+                    <div class="anomaly-categories" id="anomaly-categories">
+                        <div class="acat" data-type="brute-force">
+                            <div class="acat-icon">&#9632;</div>
+                            <div class="acat-info">
+                                <span class="acat-name">Brute Force</span>
+                                <div class="acat-bar">
+                                    <div class="acat-fill bf" style="width:0%"></div>
+                                </div>
+                            </div>
+                            <span class="acat-count" id="ac-bf">0</span>
+                        </div>
+                        <div class="acat" data-type="data-exfil">
+                            <div class="acat-icon">&#9650;</div>
+                            <div class="acat-info">
+                                <span class="acat-name">Data Exfiltration</span>
+                                <div class="acat-bar">
+                                    <div class="acat-fill de" style="width:0%"></div>
+                                </div>
+                            </div>
+                            <span class="acat-count" id="ac-de">0</span>
+                        </div>
+                        <div class="acat" data-type="lateral-move">
+                            <div class="acat-icon">↔</div>
+                            <div class="acat-info">
+                                <span class="acat-name">Lateral Movement</span>
+                                <div class="acat-bar">
+                                    <div class="acat-fill lm" style="width:0%"></div>
+                                </div>
+                            </div>
+                            <span class="acat-count" id="ac-lm">0</span>
+                        </div>
+                        <div class="acat" data-type="ddos">
+                            <div class="acat-icon">&#8776;</div>
+                            <div class="acat-info">
+                                <span class="acat-name">DDoS Pattern</span>
+                                <div class="acat-bar">
+                                    <div class="acat-fill dd" style="width:0%"></div>
+                                </div>
+                            </div>
+                            <span class="acat-count" id="ac-dd">0</span>
+                        </div>
+                        <div class="acat" data-type="zero-day">
+                            <div class="acat-icon">&#9888;</div>
+                            <div class="acat-info">
+                                <span class="acat-name">Zero-Day Exploit</span>
+                                <div class="acat-bar">
+                                    <div class="acat-fill zd" style="width:0%"></div>
+                                </div>
+                            </div>
+                            <span class="acat-count" id="ac-zd">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Risk Score Distribution</h2>
+                    </div>
+                    <canvas id="riskDistCanvas" width="280" height="200"></canvas>
+                </div>
+
+                <div class="card full-width">
+                    <div class="card-header">
+                        <h2>Anomaly Event Log</h2>
+                    </div>
+                    <div class="anomaly-log" id="anomaly-log"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════ PAGE: BEHAVIORAL ANALYSIS ══════════════ -->
+        <div class="page" id="page-behavior">
+            <div class="page-header">
+                <h1>Behavioral Analysis Engine</h1>
+                <p>User & entity behavior analytics (UEBA), process chain analysis & kill-chain mapping</p>
+            </div>
+
+            <div class="behavior-grid">
+                <div class="card wide">
+                    <div class="card-header">
+                        <h2>Attack Kill Chain Progression</h2>
+                    </div>
+                    <div class="killchain">
+                        <div class="kc-stage" id="kc-recon">
+                            <div class="kc-icon">&#9673;</div>
+                            <div class="kc-label">Reconnaissance</div>
+                            <div class="kc-status idle">MONITOR</div>
+                        </div>
+                        <div class="kc-arrow">→</div>
+                        <div class="kc-stage" id="kc-weapon">
+                            <div class="kc-icon">&#9878;</div>
+                            <div class="kc-label">Weaponization</div>
+                            <div class="kc-status idle">MONITOR</div>
+                        </div>
+                        <div class="kc-arrow">→</div>
+                        <div class="kc-stage" id="kc-delivery">
+                            <div class="kc-icon">&#9654;</div>
+                            <div class="kc-label">Delivery</div>
+                            <div class="kc-status idle">MONITOR</div>
+                        </div>
+                        <div class="kc-arrow">→</div>
+                        <div class="kc-stage" id="kc-exploit">
+                            <div class="kc-icon">&#10006;</div>
+                            <div class="kc-label">Exploitation</div>
+                            <div class="kc-status idle">MONITOR</div>
+                        </div>
+                        <div class="kc-arrow">→</div>
+                        <div class="kc-stage" id="kc-install">
+                            <div class="kc-icon">&#9881;</div>
+                            <div class="kc-label">Installation</div>
+                            <div class="kc-status idle">MONITOR</div>
+                        </div>
+                        <div class="kc-arrow">→</div>
+                        <div class="kc-stage" id="kc-c2">
+                            <div class="kc-icon">&#9678;</div>
+                            <div class="kc-label">C2 Channel</div>
+                            <div class="kc-status idle">MONITOR</div>
+                        </div>
+                        <div class="kc-arrow">→</div>
+                        <div class="kc-stage" id="kc-action">
+                            <div class="kc-icon">&#9670;</div>
+                            <div class="kc-label">Exfiltration</div>
+                            <div class="kc-status idle">MONITOR</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card wide">
+                    <div class="card-header">
+                        <h2>UEBA Risk Profiles</h2>
+                    </div>
+                    <div class="ueba-list" id="ueba-list"
+                        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;">
+                        <div class="ueba-entity" id="ueba-cfo">
+                            <div class="ueba-avatar" style="background:#4ade8020; color:#4ade80;">M</div>
+                            <div class="ueba-info">
+                                <span class="ueba-name">m.williams@corp.net</span>
+                                <span class="ueba-role">Finance Director</span>
+                            </div>
+                            <div class="ueba-score low">16</div>
+                        </div>
+                        <div class="ueba-entity" id="ueba-db">
+                            <div class="ueba-avatar" style="background:#facc1520; color:#facc15;">D</div>
+                            <div class="ueba-info">
+                                <span class="ueba-name">db-backup-svc-04</span>
+                                <span class="ueba-role">Automated Pipeline</span>
+                            </div>
+                            <div class="ueba-score medium">58</div>
+                        </div>
+                        <div class="ueba-entity" id="ueba-contractor">
+                            <div class="ueba-avatar" style="background:#f43f5e20; color:#f43f5e;">E</div>
+                            <div class="ueba-info">
+                                <span class="ueba-name">ext.contractor@partner.org</span>
+                                <span class="ueba-role">Guest Network</span>
+                            </div>
+                            <div class="ueba-score high">82</div>
+                        </div>
+                        <div class="ueba-entity" id="ueba-sys">
+                            <div class="ueba-avatar" style="background:#60a5fa20; color:#60a5fa;">S</div>
+                            <div class="ueba-info">
+                                <span class="ueba-name">sys-orch-daemon</span>
+                                <span class="ueba-role">System Service</span>
+                            </div>
+                            <div class="ueba-score low">5</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════ PAGE: ADAPTIVE RESPONSE ══════════════ -->
+        <div class="page" id="page-response">
+            <div class="page-header">
+                <h1>Adaptive Response Engine</h1>
+                <p>Autonomous orchestration of countermeasures, dynamic policy enforcement & self-healing</p>
+            </div>
+
+            <div class="response-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Response Playbooks</h2>
+                    </div>
+                    <div class="playbooks" id="playbooks">
+                        <div class="playbook" onclick="activatePlaybook('ISOLATE')" id="pb-isolate">
+                            <div class="pb-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none"
+                                    stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                                    <line x1="9" y1="3" x2="9" y2="21" />
+                                    <line x1="15" y1="3" x2="15" y2="21" />
+                                </svg></div>
+                            <div class="pb-info">
+                                <span class="pb-name">Network Isolation</span>
+                                <span class="pb-desc">Quarantine affected segments</span>
+                            </div>
+                            <div class="pb-status idle">READY</div>
+                        </div>
+                        <div class="playbook" onclick="activatePlaybook('BLOCK')" id="pb-block">
+                            <div class="pb-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none"
+                                    stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                                </svg></div>
+                            <div class="pb-info">
+                                <span class="pb-name">IP Blacklist</span>
+                                <span class="pb-desc">Block malicious sources</span>
+                            </div>
+                            <div class="pb-status idle">READY</div>
+                        </div>
+                        <div class="playbook" onclick="activatePlaybook('DECEPTION')" id="pb-deception">
+                            <div class="pb-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none"
+                                    stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <polygon points="12,2 22,8.5 22,15.5 12,22 2,15.5 2,8.5" />
+                                    <circle cx="12" cy="12" r="3" />
+                                </svg></div>
+                            <div class="pb-info">
+                                <span class="pb-name">Honeypot Deploy</span>
+                                <span class="pb-desc">Redirect to deception grid</span>
+                            </div>
+                            <div class="pb-status idle">READY</div>
+                        </div>
+                        <div class="playbook" onclick="activatePlaybook('THROTTLE')" id="pb-throttle">
+                            <div class="pb-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none"
+                                    stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <polyline points="12,6 12,12 16,14" />
+                                </svg></div>
+                            <div class="pb-info">
+                                <span class="pb-name">Rate Limiting</span>
+                                <span class="pb-desc">Throttle suspicious endpoints</span>
+                            </div>
+                            <div class="pb-status idle">READY</div>
+                        </div>
+                        <div class="playbook" onclick="activatePlaybook('PATCH')" id="pb-patch">
+                            <div class="pb-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none"
+                                    stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                                    <line x1="12" y1="8" x2="12" y2="16" />
+                                    <line x1="8" y1="12" x2="16" y2="12" />
+                                </svg></div>
+                            <div class="pb-info">
+                                <span class="pb-name">Auto-Patch</span>
+                                <span class="pb-desc">Deploy virtual patches</span>
+                            </div>
+                            <div class="pb-status idle">READY</div>
+                        </div>
+                        <div class="playbook" onclick="activatePlaybook('RECOVER')" id="pb-recover">
+                            <div class="pb-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none"
+                                    stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <polyline points="1,4 1,10 7,10" />
+                                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+                                </svg></div>
+                            <div class="pb-info">
+                                <span class="pb-name">Self-Healing</span>
+                                <span class="pb-desc">Restore compromised states</span>
+                            </div>
+                            <div class="pb-status idle">READY</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Response Timeline</h2>
+                    </div>
+                    <div class="timeline" id="response-timeline"></div>
+                </div>
+
+                <div class="card wide">
+                    <div class="card-header">
+                        <h2>Autonomous Decision Matrix</h2>
+                        <span class="card-badge">AI-Driven</span>
+                    </div>
+                    <div class="decision-matrix" id="decision-matrix">
+                        <table class="dm-table">
+                            <thead>
+                                <tr>
+                                    <th>Threat Type</th>
+                                    <th>Severity</th>
+                                    <th>Confidence</th>
+                                    <th>Action Taken</th>
+                                    <th>Response Time</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dm-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════ PAGE: FORENSICS ══════════════ -->
+        <div class="page" id="page-forensics">
+            <div class="page-header">
+                <h1>Forensic Audit Logs</h1>
+                <p>Tamper-resistant immutable logs for regulatory compliance & legal accountability</p>
+            </div>
+
+            <div class="forensics-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Log Integrity Verification</h2>
+                    </div>
+                    <div class="integrity-panel">
+                        <div class="integrity-icon">&#9670;</div>
+                        <div class="integrity-status">
+                            <span class="is-label">Blockchain Hash Chain</span>
+                            <span class="is-value verified">VERIFIED</span>
+                        </div>
+                        <div class="hash-display" id="hash-display">
+                            <div class="hash-row"><span class="hr-label">Latest Block:</span><span class="hr-val mono"
+                                    id="latest-hash">Computing...</span></div>
+                            <div class="hash-row"><span class="hr-label">Chain Length:</span><span class="hr-val mono"
+                                    id="chain-length">0</span></div>
+                            <div class="hash-row"><span class="hr-label">Merkle Root:</span><span class="hr-val mono"
+                                    id="merkle-root">Computing...</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Compliance Status</h2>
+                    </div>
+                    <div class="compliance-grid">
+                        <div class="comp-item"><span class="comp-icon">&#10003;</span><span
+                                class="comp-name">GDPR</span><span class="comp-st green">Compliant</span></div>
+                        <div class="comp-item"><span class="comp-icon">&#10003;</span><span class="comp-name">ISO
+                                27001</span><span class="comp-st green">Compliant</span></div>
+                        <div class="comp-item"><span class="comp-icon">&#10003;</span><span class="comp-name">SOC
+                                2</span><span class="comp-st green">Compliant</span></div>
+                        <div class="comp-item"><span class="comp-icon">&#10003;</span><span
+                                class="comp-name">HIPAA</span><span class="comp-st green">Compliant</span></div>
+                        <div class="comp-item"><span class="comp-icon">⚠</span><span
+                                class="comp-name">PCI-DSS</span><span class="comp-st yellow">Review</span></div>
+                        <div class="comp-item"><span class="comp-icon">&#10003;</span><span class="comp-name">NIST
+                                CSF</span><span class="comp-st green">Compliant</span></div>
+                    </div>
+                </div>
+
+                <div class="card full-width">
+                    <div class="card-header">
+                        <h2>Immutable Audit Trail</h2>
+                        <span class="card-badge">Tamper-Resistant</span>
+                        <button class="btn-sm" onclick="exportLogs()">Export</button>
+                    </div>
+                    <div class="audit-log" id="audit-log"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════ PAGE: ML ENGINE ══════════════ -->
+        <div class="page" id="page-learning">
+            <div class="page-header">
+                <h1>Machine Learning Engine</h1>
+                <p>Continuous learning from historical & simulated threat data with self-evolving models</p>
+            </div>
+
+            <div class="ml-grid">
+                <div class="card wide">
+                    <div class="card-header">
+                        <h2>Model Training Progress</h2>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <span class="card-badge live">AUTO-TRAINING</span>
+                            <button class="btn-sm" id="btn-generate-report" onclick="generateMLReport()">Generate
+                                Report</button>
+                        </div>
+                    </div>
+                    <canvas id="trainingCanvas" width="700" height="180"></canvas>
+                    <div class="training-stats">
+                        <div class="ts"><span class="ts-l">Epochs</span><span class="ts-v" id="ml-epochs">0</span></div>
+                        <div class="ts"><span class="ts-l">Loss</span><span class="ts-v" id="ml-loss">1.000</span></div>
+                        <div class="ts"><span class="ts-l">Val Accuracy</span><span class="ts-v"
+                                id="ml-vacc">0.0%</span></div>
+                        <div class="ts"><span class="ts-l">F1 Score</span><span class="ts-v" id="ml-f1">0.000</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card wide" id="report-card" style="display:none;">
+                    <div class="card-header">
+                        <h2>Report Generation Status</h2>
+                        <span class="card-badge" id="report-badge">GENERATING</span>
+                    </div>
+                    <div class="report-terminal">
+                        <div class="report-status" id="report-status-text">Initializing generation sequence...</div>
+                        <div class="report-progress">
+                            <div class="report-bar" id="report-bar"></div>
+                        </div>
+                        <pre class="report-output" id="report-output"></pre>
+                    </div>
+                </div>
+
+                <div class="card" style="grid-column: span 2;">
+                    <div class="card-header">
+                        <h2>Live Inference Log</h2>
+                        <span class="card-badge live">EVALUATING</span>
+                    </div>
+                    <div class="inference-log" id="inference-log"></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Decision Feature Weights</h2>
+                    </div>
+                    <div class="feature-weights">
+                        <div class="fw-item">
+                            <div class="fw-info"><span class="fw-name">Payload Entropy</span><span
+                                    class="fw-val">34%</span></div>
+                            <div class="fw-bar">
+                                <div class="fw-fill" style="width: 34%; background: var(--pink);"></div>
+                            </div>
+                        </div>
+                        <div class="fw-item">
+                            <div class="fw-info"><span class="fw-name">Req Frequency</span><span
+                                    class="fw-val">28%</span></div>
+                            <div class="fw-bar">
+                                <div class="fw-fill" style="width: 28%; background: var(--purple);"></div>
+                            </div>
+                        </div>
+                        <div class="fw-item">
+                            <div class="fw-info"><span class="fw-name">Geo Bias</span><span class="fw-val">15%</span>
+                            </div>
+                            <div class="fw-bar">
+                                <div class="fw-fill" style="width: 15%; background: var(--cyan);"></div>
+                            </div>
+                        </div>
+                        <div class="fw-item">
+                            <div class="fw-info"><span class="fw-name">Protocol Anomaly</span><span
+                                    class="fw-val">12%</span></div>
+                            <div class="fw-bar">
+                                <div class="fw-fill" style="width: 12%; background: var(--orange);"></div>
+                            </div>
+                        </div>
+                        <div class="fw-item">
+                            <div class="fw-info"><span class="fw-name">Time Dist</span><span class="fw-val">11%</span>
+                            </div>
+                            <div class="fw-bar">
+                                <div class="fw-fill" style="width: 11%; background: var(--green);"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════ PAGE: AGENT NETWORK ══════════════ -->
+        <div class="page" id="page-agents">
+            <div class="page-header">
+                <h1>Autonomous Multi-Agent Network</h1>
+                <p>A Head Agent (War Room Orchestrator) and 4 specialized agents collaborating to monitor, detect,
+                    assess, respond &amp; audit in real-time</p>
+            </div>
+
+            <!-- Orchestration Canvas Banner -->
+            <div class="agent-canvas-wrap card">
+                <div class="card-header">
+                    <h2>Agent Collaboration Topology</h2>
+                    <span class="card-badge live">ORCHESTRATING</span>
+                    <button class="btn-sm" id="btn-agent-attack" onclick="agentSimulateAttack()">Trigger
+                        Incident</button>
+                </div>
+                <canvas id="agentCanvas"></canvas>
+                <div class="agent-canvas-legend">
+                    <span class="acl-item"><span class="acl-dot head"></span>Head Agent</span>
+                    <span class="acl-item"><span class="acl-dot mon"></span>Monitor Agent</span>
+                    <span class="acl-item"><span class="acl-dot tia"></span>Threat Intel Agent</span>
+                    <span class="acl-item"><span class="acl-dot rca"></span>Response Agent</span>
+                    <span class="acl-item"><span class="acl-dot lea"></span>Learning &amp; Audit Agent</span>
+                    <span class="acl-item"><span class="acl-line"></span>Active Message</span>
+                </div>
+            </div>
+
+            <!-- 5 Agent Cards -->
+            <div class="agents-grid">
+
+                <!-- HEAD AGENT -->
+                <div class="agent-card head-agent" id="agent-head">
+                    <div class="agent-card-top">
+                        <div class="agent-avatar head">&#9673;</div>
+                        <div class="agent-meta">
+                            <span class="agent-name">Head Agent</span>
+                            <span class="agent-role">War Room Orchestrator</span>
+                        </div>
+                        <div class="agent-online-badge" id="head-badge">ONLINE</div>
+                    </div>
+                    <div class="agent-desc">Central orchestrator that receives intel from all sub-agents, evaluates
+                        global risk posture, dispatches directives and maintains situational awareness across the entire
+                        defense fabric.</div>
+                    <div class="agent-metrics">
+                        <div class="am-item"><span class="am-l">Directives Sent</span><span class="am-v"
+                                id="am-head-dir">0</span></div>
+                        <div class="am-item"><span class="am-l">Escalations</span><span class="am-v"
+                                id="am-head-esc">0</span></div>
+                        <div class="am-item"><span class="am-l">Uptime</span><span class="am-v">99.99%</span></div>
+                    </div>
+                    <div class="agent-log" id="log-head"></div>
+                </div>
+
+                <!-- MONITORING & DETECTION AGENT -->
+                <div class="agent-card mon-agent" id="agent-mon">
+                    <div class="agent-card-top">
+                        <div class="agent-avatar mon">&#9678;</div>
+                        <div class="agent-meta">
+                            <span class="agent-name">Monitoring &amp; Detection Agent</span>
+                            <span class="agent-role">Sensor Fusion &amp; Alert Engine</span>
+                        </div>
+                        <div class="agent-online-badge" id="mon-badge">ONLINE</div>
+                    </div>
+                    <div class="agent-desc">Continuously ingests network flows, system logs, and endpoint telemetry.
+                        Applies statistical and ML-based detection to identify anomalies and relay structured alerts to
+                        the Head Agent.</div>
+                    <div class="agent-metrics">
+                        <div class="am-item"><span class="am-l">Events Scanned</span><span class="am-v"
+                                id="am-mon-ev">0</span></div>
+                        <div class="am-item"><span class="am-l">Alerts Raised</span><span class="am-v"
+                                id="am-mon-al">0</span></div>
+                        <div class="am-item"><span class="am-l">False Positive Rate</span><span class="am-v"
+                                id="am-mon-fp">1.2%</span></div>
+                    </div>
+                    <div class="agent-sensor-bars" id="sensor-bars">
+                        <div class="sb-row"><span class="sb-lbl">Network</span>
+                            <div class="sb-bar">
+                                <div class="sb-fill net" id="sb-net"></div>
+                            </div>
+                        </div>
+                        <div class="sb-row"><span class="sb-lbl">Endpoint</span>
+                            <div class="sb-bar">
+                                <div class="sb-fill end" id="sb-end"></div>
+                            </div>
+                        </div>
+                        <div class="sb-row"><span class="sb-lbl">Log Stream</span>
+                            <div class="sb-bar">
+                                <div class="sb-fill log" id="sb-log"></div>
+                            </div>
+                        </div>
+                        <div class="sb-row"><span class="sb-lbl">Cloud API</span>
+                            <div class="sb-bar">
+                                <div class="sb-fill cld" id="sb-cld"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="agent-log" id="log-mon"></div>
+                </div>
+
+                <!-- THREAT INTEL & RISK ASSESSMENT AGENT -->
+                <div class="agent-card tia-agent" id="agent-tia">
+                    <div class="agent-card-top">
+                        <div class="agent-avatar tia">&#9830;</div>
+                        <div class="agent-meta">
+                            <span class="agent-name">Threat Intel &amp; Risk Assessment Agent</span>
+                            <span class="agent-role">IOC Enrichment &amp; CVSS Scorer</span>
+                        </div>
+                        <div class="agent-online-badge" id="tia-badge">ONLINE</div>
+                    </div>
+                    <div class="agent-desc">Enriches alerts with external threat intelligence (IOCs, CVEs, TTPs),
+                        computes dynamic CVSS-based risk scores and predicts likely attack progression paths for Head
+                        Agent decision-making.</div>
+                    <div class="agent-metrics">
+                        <div class="am-item"><span class="am-l">IOCs Enriched</span><span class="am-v"
+                                id="am-tia-ioc">0</span></div>
+                        <div class="am-item"><span class="am-l">Risk Score (Avg)</span><span class="am-v"
+                                id="am-tia-risk">—</span></div>
+                        <div class="am-item"><span class="am-l">CVEs Matched</span><span class="am-v"
+                                id="am-tia-cve">0</span></div>
+                    </div>
+                    <div class="risk-gauge-container">
+                        <canvas id="riskGaugeCanvas" width="220" height="120"></canvas>
+                        <div class="rg-label" id="rg-label">Computing...</div>
+                    </div>
+                    <div class="agent-log" id="log-tia"></div>
+                </div>
+
+                <!-- RESPONSE & CONTAINMENT AGENT -->
+                <div class="agent-card rca-agent" id="agent-rca">
+                    <div class="agent-card-top">
+                        <div class="agent-avatar rca">&#10006;</div>
+                        <div class="agent-meta">
+                            <span class="agent-name">Response &amp; Containment Agent</span>
+                            <span class="agent-role">Autonomous Countermeasure Executor</span>
+                        </div>
+                        <div class="agent-online-badge" id="rca-badge">ONLINE</div>
+                    </div>
+                    <div class="agent-desc">Receives directives from the Head Agent and autonomously executes
+                        countermeasures: isolates network segments, deploys honeypots, updates firewall rules, and
+                        applies virtual patches — all without human intervention.</div>
+                    <div class="agent-metrics">
+                        <div class="am-item"><span class="am-l">Actions Executed</span><span class="am-v"
+                                id="am-rca-act">0</span></div>
+                        <div class="am-item"><span class="am-l">Avg Response Time</span><span class="am-v"
+                                id="am-rca-time">—</span></div>
+                        <div class="am-item"><span class="am-l">Rollbacks</span><span class="am-v"
+                                id="am-rca-roll">0</span></div>
+                    </div>
+                    <div class="rca-actions" id="rca-actions"></div>
+                    <div class="agent-log" id="log-rca"></div>
+                </div>
+
+                <!-- LEARNING & AUDIT AGENT -->
+                <div class="agent-card lea-agent" id="agent-lea">
+                    <div class="agent-card-top">
+                        <div class="agent-avatar lea">&#9744;</div>
+                        <div class="agent-meta">
+                            <span class="agent-name">Learning &amp; Audit Agent</span>
+                            <span class="agent-role">Continuous Learning &amp; Compliance Recorder</span>
+                        </div>
+                        <div class="agent-online-badge" id="lea-badge">ONLINE</div>
+                    </div>
+                    <div class="agent-desc">Learns from every incident by updating threat models with new attack
+                        patterns. Simultaneously generates tamper-resistant forensic logs, feeds data back to the ML
+                        engine, and maintains regulatory audit trails.</div>
+                    <div class="agent-metrics">
+                        <div class="am-item"><span class="am-l">Model Updates</span><span class="am-v"
+                                id="am-lea-upd">0</span></div>
+                        <div class="am-item"><span class="am-l">Audit Records</span><span class="am-v"
+                                id="am-lea-aud">0</span></div>
+                        <div class="am-item"><span class="am-l">Knowledge Base</span><span class="am-v" id="am-lea-kb">0
+                                entries</span></div>
+                    </div>
+                    <div class="agent-log" id="log-lea"></div>
+                </div>
+
+            </div>
+
+            <!-- Agent Message Bus -->
+            <div class="card" style="margin-top:16px">
+                <div class="card-header">
+                    <h2>Inter-Agent Message Bus</h2>
+                    <span class="card-badge live">LIVE</span>
+                </div>
+                <div class="agent-msgbus" id="agent-msgbus"></div>
+            </div>
+
+        </div>
+
+
+
+    </main>
+
+    <!-- ALERT OVERLAY -->
+    <div class="alert-overlay" id="alert-overlay" style="display:none">
+        <div class="alert-panel">
+            <div class="alert-icon">&#9888;</div>
+            <div class="alert-msg" id="alert-msg">Attack Detected!</div>
+            <div class="alert-detail" id="alert-detail">Processing response...</div>
+            <div class="alert-actions">
+                <button class="btn-primary" onclick="closeAlert()">Acknowledge</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
