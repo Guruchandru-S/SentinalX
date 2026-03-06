@@ -15,10 +15,11 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="style.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 
 <body>
-    <!-- ═══════════════════════════════ LOGIN SCREEN ═══════════════════════════════ -->
+
     <div id="login-overlay" class="login-overlay">
         <div class="login-card">
             <div class="login-logo">
@@ -62,22 +63,16 @@
                 <span>OR</span>
             </div>
 
-            <button type="button" class="btn-google w-full" id="google-login-btn">
-                <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
-                    <g transform="matrix(1, 0, 0, 1, 27.009001, -39.238998)">
-                        <path fill="#4285F4"
-                            d="M -3.264 51.509 C -3.264 50.719 -3.334 49.969 -3.454 49.239 L -14.754 49.239 L -14.754 53.749 L -8.284 53.749 C -8.574 55.229 -9.424 56.479 -10.684 57.329 L -10.684 60.329 L -6.824 60.329 C -4.564 58.239 -3.264 55.159 -3.264 51.509 Z" />
-                        <path fill="#34A853"
-                            d="M -14.754 63.239 C -11.514 63.239 -8.804 62.159 -6.824 60.329 L -10.684 57.329 C -11.764 58.049 -13.134 58.489 -14.754 58.489 C -17.884 58.489 -20.534 56.379 -21.484 53.529 L -25.464 53.529 L -25.464 56.619 C -23.494 60.539 -19.444 63.239 -14.754 63.239 Z" />
-                        <path fill="#FBBC05"
-                            d="M -21.484 53.529 C -21.734 52.809 -21.864 52.039 -21.864 51.239 C -21.864 50.439 -21.724 49.669 -21.484 48.949 L -21.484 45.859 L -25.464 45.859 C -26.284 47.479 -26.754 49.299 -26.754 51.239 C -26.754 53.179 -26.284 54.999 -25.464 56.619 L -21.484 53.529 Z" />
-                        <path fill="#EA4335"
-                            d="M -14.754 43.989 C -12.984 43.989 -11.404 44.599 -10.154 45.789 L -6.734 42.369 C -8.804 40.429 -11.514 39.239 -14.754 39.239 C -19.444 39.239 -23.494 41.939 -25.464 45.859 L -21.484 48.949 C -20.534 46.099 -17.884 43.989 -14.754 43.989 Z" />
-                    </g>
-                </svg>
-                <span>Continue with Google</span>
-                <span class="auth-spinner-google" style="display:none; color: #aaa;">⟳</span>
-            </button>
+            <!-- Authentic Google Sign-In Button -->
+            <div id="g_id_onload"
+                data-client_id="341392170764-aaqqfj4ro17vge5k3t00c8hfe67u7g38.apps.googleusercontent.com"
+                data-context="signin" data-ux_mode="popup" data-callback="handleGoogleCredentialResponse"
+                data-auto_prompt="false">
+            </div>
+            <div class="g_id_signin" style="display: flex; justify-content: center; margin-top: 10px;"
+                data-type="standard" data-shape="rectangular" data-theme="filled_black" data-text="continue_with"
+                data-size="large" data-logo_alignment="left" data-width="320">
+            </div>
 
             <div class="login-footer">
                 <p>Secured via Zero Trust Architecture</p>
@@ -85,47 +80,7 @@
         </div>
     </div>
 
-    <!-- ═══════════════════════════════ GOOGLE ACCOUNT SELECTOR (MOCK) ═══════════════════════════════ -->
-    <div id="google-sso-overlay" class="login-overlay hidden">
-        <div class="login-card" style="width: 400px; padding: 32px 24px;">
-            <div style="margin-bottom: 24px;">
-                <svg viewBox="0 0 24 24" width="32" height="32" xmlns="http://www.w3.org/2000/svg">
-                    <g transform="matrix(1, 0, 0, 1, 27.009001, -39.238998)">
-                        <path fill="#4285F4"
-                            d="M -3.264 51.509 C -3.264 50.719 -3.334 49.969 -3.454 49.239 L -14.754 49.239 L -14.754 53.749 L -8.284 53.749 C -8.574 55.229 -9.424 56.479 -10.684 57.329 L -10.684 60.329 L -6.824 60.329 C -4.564 58.239 -3.264 55.159 -3.264 51.509 Z" />
-                        <path fill="#34A853"
-                            d="M -14.754 63.239 C -11.514 63.239 -8.804 62.159 -6.824 60.329 L -10.684 57.329 C -11.764 58.049 -13.134 58.489 -14.754 58.489 C -17.884 58.489 -20.534 56.379 -21.484 53.529 L -25.464 53.529 L -25.464 56.619 C -23.494 60.539 -19.444 63.239 -14.754 63.239 Z" />
-                        <path fill="#FBBC05"
-                            d="M -21.484 53.529 C -21.734 52.809 -21.864 52.039 -21.864 51.239 C -21.864 50.439 -21.724 49.669 -21.484 48.949 L -21.484 45.859 L -25.464 45.859 C -26.284 47.479 -26.754 49.299 -26.754 51.239 C -26.754 53.179 -26.284 54.999 -25.464 56.619 L -21.484 53.529 Z" />
-                        <path fill="#EA4335"
-                            d="M -14.754 43.989 C -12.984 43.989 -11.404 44.599 -10.154 45.789 L -6.734 42.369 C -8.804 40.429 -11.514 39.239 -14.754 39.239 C -19.444 39.239 -23.494 41.939 -25.464 45.859 L -21.484 48.949 C -20.534 46.099 -17.884 43.989 -14.754 43.989 Z" />
-                    </g>
-                </svg>
-            </div>
-            <h2 style="font-size: 1.4rem; font-weight: 500; margin-bottom: 8px;">Sign in with Google</h2>
-            <p style="color: var(--text-secondary); margin-bottom: 24px; font-size: 0.95rem;">Choose an account to
-                continue to AEGIS</p>
 
-            <div class="account-list" style="width: 100%; display: flex; flex-direction: column; gap: 8px;">
-                <button class="account-item" onclick="completeGoogleLogin('user@organization.corp')">
-                    <div class="acc-avatar" style="background: var(--purple);">U</div>
-                    <div class="acc-info">
-                        <span class="acc-name">Authorized User</span>
-                        <span class="acc-email">user@organization.corp</span>
-                    </div>
-                </button>
-                <button class="account-item" onclick="completeGoogleLogin('admin@aegis.system')">
-                    <div class="acc-avatar" style="background: var(--cyan);">A</div>
-                    <div class="acc-info">
-                        <span class="acc-name">System Admin</span>
-                        <span class="acc-email">admin@aegis.system</span>
-                    </div>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ═══════════════════════════════ SIDEBAR ═══════════════════════════════ -->
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-logo">
             <div class="logo-icon">
@@ -186,10 +141,10 @@
         </div>
     </aside>
 
-    <!-- ═══════════════════════════════ MAIN ═══════════════════════════════════ -->
+
     <main class="main-content">
 
-        <!-- TOP BAR -->
+
         <header class="topbar">
             <div class="topbar-left">
                 <div class="threat-badge" id="global-threat-badge">
@@ -217,7 +172,7 @@
             </div>
         </header>
 
-        <!-- ══════════════ PAGE: DASHBOARD ══════════════ -->
+
         <div class="page active" id="page-dashboard">
             <div class="page-header">
                 <h1>Command Center</h1>
@@ -295,7 +250,7 @@
             </div>
 
             <div class="dashboard-grid">
-                <!-- Risk Heatmap -->
+
                 <div class="card wide">
                     <div class="card-header">
                         <h2>Risk Propagation Heatmap</h2>
@@ -306,7 +261,7 @@
                     </div>
                 </div>
 
-                <!-- Attack Vector Radar -->
+
                 <div class="card">
                     <div class="card-header">
                         <h2>Attack Vector Analysis</h2>
@@ -315,7 +270,7 @@
                     <canvas id="radarCanvas" width="260" height="260"></canvas>
                 </div>
 
-                <!-- Network Traffic -->
+
                 <div class="card">
                     <div class="card-header">
                         <h2>Network Traffic Flow</h2>
@@ -324,7 +279,7 @@
                     <canvas id="trafficCanvas" width="280" height="200"></canvas>
                 </div>
 
-                <!-- Active Threats Feed -->
+
                 <div class="card tall">
                     <div class="card-header">
                         <h2>Threat Intelligence Feed</h2>
@@ -333,7 +288,7 @@
                     <div class="threat-feed" id="threat-feed"></div>
                 </div>
 
-                <!-- Defense Layers -->
+
                 <div class="card">
                     <div class="card-header">
                         <h2>Defense Layer Status</h2>
@@ -392,7 +347,7 @@
             </div>
         </div>
 
-        <!-- ══════════════ PAGE: LIVE MONITOR ══════════════ -->
+
         <div class="page" id="page-monitor">
             <div class="page-header">
                 <h1>Live Network Monitor</h1>
@@ -440,7 +395,7 @@
             </div>
         </div>
 
-        <!-- ══════════════ PAGE: ANOMALY DETECTION ══════════════ -->
+
         <div class="page" id="page-anomaly">
             <div class="page-header">
                 <h1>Anomaly Detection Engine</h1>
@@ -530,7 +485,7 @@
             </div>
         </div>
 
-        <!-- ══════════════ PAGE: BEHAVIORAL ANALYSIS ══════════════ -->
+
         <div class="page" id="page-behavior">
             <div class="page-header">
                 <h1>Behavioral Analysis Engine</h1>
@@ -630,7 +585,7 @@
             </div>
         </div>
 
-        <!-- ══════════════ PAGE: ADAPTIVE RESPONSE ══════════════ -->
+
         <div class="page" id="page-response">
             <div class="page-header">
                 <h1>Adaptive Response Engine</h1>
@@ -757,7 +712,7 @@
             </div>
         </div>
 
-        <!-- ══════════════ PAGE: FORENSICS ══════════════ -->
+
         <div class="page" id="page-forensics">
             <div class="page-header">
                 <h1>Forensic Audit Logs</h1>
@@ -817,7 +772,7 @@
             </div>
         </div>
 
-        <!-- ══════════════ PAGE: ML ENGINE ══════════════ -->
+
         <div class="page" id="page-learning">
             <div class="page-header">
                 <h1>Machine Learning Engine</h1>
@@ -912,7 +867,7 @@
             </div>
         </div>
 
-        <!-- ══════════════ PAGE: AGENT NETWORK ══════════════ -->
+
         <div class="page" id="page-agents">
             <div class="page-header">
                 <h1>Autonomous Multi-Agent Network</h1>
@@ -920,7 +875,7 @@
                     assess, respond &amp; audit in real-time</p>
             </div>
 
-            <!-- Orchestration Canvas Banner -->
+
             <div class="agent-canvas-wrap card">
                 <div class="card-header">
                     <h2>Agent Collaboration Topology</h2>
@@ -939,10 +894,10 @@
                 </div>
             </div>
 
-            <!-- 5 Agent Cards -->
+
             <div class="agents-grid">
 
-                <!-- HEAD AGENT -->
+
                 <div class="agent-card head-agent" id="agent-head">
                     <div class="agent-card-top">
                         <div class="agent-avatar head">&#9673;</div>
@@ -965,7 +920,7 @@
                     <div class="agent-log" id="log-head"></div>
                 </div>
 
-                <!-- MONITORING & DETECTION AGENT -->
+
                 <div class="agent-card mon-agent" id="agent-mon">
                     <div class="agent-card-top">
                         <div class="agent-avatar mon">&#9678;</div>
@@ -1011,7 +966,7 @@
                     <div class="agent-log" id="log-mon"></div>
                 </div>
 
-                <!-- THREAT INTEL & RISK ASSESSMENT AGENT -->
+
                 <div class="agent-card tia-agent" id="agent-tia">
                     <div class="agent-card-top">
                         <div class="agent-avatar tia">&#9830;</div>
@@ -1039,7 +994,7 @@
                     <div class="agent-log" id="log-tia"></div>
                 </div>
 
-                <!-- RESPONSE & CONTAINMENT AGENT -->
+
                 <div class="agent-card rca-agent" id="agent-rca">
                     <div class="agent-card-top">
                         <div class="agent-avatar rca">&#10006;</div>
@@ -1064,7 +1019,7 @@
                     <div class="agent-log" id="log-rca"></div>
                 </div>
 
-                <!-- LEARNING & AUDIT AGENT -->
+
                 <div class="agent-card lea-agent" id="agent-lea">
                     <div class="agent-card-top">
                         <div class="agent-avatar lea">&#9744;</div>
@@ -1090,7 +1045,7 @@
 
             </div>
 
-            <!-- Agent Message Bus -->
+
             <div class="card" style="margin-top:16px">
                 <div class="card-header">
                     <h2>Inter-Agent Message Bus</h2>
@@ -1105,7 +1060,7 @@
 
     </main>
 
-    <!-- ALERT OVERLAY -->
+
     <div class="alert-overlay" id="alert-overlay" style="display:none">
         <div class="alert-panel">
             <div class="alert-icon">&#9888;</div>
@@ -1117,6 +1072,7 @@
         </div>
     </div>
 
+    <script src="api.js"></script>
     <script src="app.js"></script>
 </body>
 

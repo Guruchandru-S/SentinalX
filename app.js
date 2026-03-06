@@ -1,9 +1,3 @@
-/* ════════════════════════════════════════════════════════════
-   AEGIS — JavaScript Logic Engine
-   Autonomous Cybersecurity Defense System
-════════════════════════════════════════════════════════════ */
-
-// ─── Global State ────────────────────────────────────────────
 const STATE = {
   threatLevel: 'MODERATE',
   eventsPerSec: 0,
@@ -23,8 +17,6 @@ const STATE = {
   attackInProgress: false,
   killChainStep: -1,
 };
-
-// ─── Threat Definitions ───────────────────────────────────────
 const THREAT_TYPES = [
   { name: 'Brute Force SSH', sev: 'high', action: 'IP Blacklist + Rate Limit' },
   { name: 'SQL Injection', sev: 'critical', action: 'WAF Block + Isolation' },
@@ -37,12 +29,8 @@ const THREAT_TYPES = [
   { name: 'Data Exfiltration', sev: 'critical', action: 'Channel Block + Forensics' },
   { name: 'Credential Stuffing', sev: 'medium', action: 'MFA Enforcement' },
 ];
-
 const GEO_ORIGINS = ['CN', 'RU', 'KP', 'IR', 'US', 'BR', 'NG', 'TR', 'UA', 'DE'];
-
 const PROTOCOLS = ['TCP', 'UDP', 'HTTP', 'HTTPS', 'DNS', 'ICMP', 'SMTP'];
-
-// ─── Utility ─────────────────────────────────────────────────
 function rand(min, max) { return Math.random() * (max - min) + min; }
 function randInt(min, max) { return Math.floor(rand(min, max + 1)); }
 function pick(arr) { return arr[randInt(0, arr.length - 1)]; }
@@ -67,8 +55,6 @@ function randomIP() {
   ];
   return `${pick(types)}.${randInt(1, 254)}`;
 }
-
-// ─── Clock ───────────────────────────────────────────────────
 function updateClock() {
   const el = document.getElementById('topbar-clock');
   if (el) el.textContent = new Date().toLocaleString('en-US', {
@@ -78,30 +64,23 @@ function updateClock() {
 }
 setInterval(updateClock, 1000);
 updateClock();
-
-// ─── Page Navigation ────────────────────────────────────────
 function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + name)?.classList.add('active');
   document.getElementById('nav-' + name)?.classList.add('active');
-
-  // Fix Leaflet tiles not loading on tab switch due to 0 height container calculation
   if (name === 'monitor') {
     if (typeof liveMap === 'undefined' || !liveMap) {
-      initLiveMap(); // Initialize live map if it hasn't been yet
+      initLiveMap();
     } else {
       setTimeout(() => liveMap.invalidateSize(), 50);
       setTimeout(() => liveMap.invalidateSize(), 250);
       if (userLoc) {
-        // Auto-pan back to user location when entering map
         liveMap.setView([userLoc.lat, userLoc.lng], 4);
       }
     }
   }
 }
-
-// ─── Threat Level Manager ────────────────────────────────────
 function setThreatLevel(level) {
   STATE.threatLevel = level;
   const badge = document.getElementById('global-threat-badge');
@@ -110,8 +89,6 @@ function setThreatLevel(level) {
   badge.className = 'threat-badge ' + level.toLowerCase();
   val.textContent = level;
 }
-
-// ─── KPI Counters ────────────────────────────────────────────
 function updateKPIs() {
   easeUpdate('kpi-neutralized', STATE.neutralized);
   easeUpdate('kpi-anomalies', STATE.anomalies);
@@ -120,22 +97,14 @@ function updateKPIs() {
   const el = document.getElementById('kpi-accuracy');
   if (el) el.textContent = STATE.accuracy.toFixed(1) + '%';
 }
-
 function easeUpdate(id, val) {
   const el = document.getElementById(id);
   if (el) el.textContent = Math.round(val);
 }
-
-// ═══════════════════════════════════════════════════════════════
-//   CANVAS DRAWING UTILITIES
-// ═══════════════════════════════════════════════════════════════
-
-// ── 1. Risk Propagation Heatmap ──────────────────────────────
 const HEATMAP_COLS = 60;
 const HEATMAP_ROWS = 10;
 let heatmapData = Array.from({ length: HEATMAP_ROWS }, () =>
   Array.from({ length: HEATMAP_COLS }, () => Math.random() * 0.4));
-
 function drawHeatmap() {
   const canvas = document.getElementById('heatmapCanvas');
   if (!canvas) return;
@@ -157,7 +126,6 @@ function drawHeatmap() {
     }
   }
 }
-
 function updateHeatmap() {
   for (let r = 0; r < HEATMAP_ROWS; r++) {
     for (let c = 0; c < HEATMAP_COLS; c++) {
@@ -170,11 +138,8 @@ function updateHeatmap() {
   }
   drawHeatmap();
 }
-
-// ── 2. Attack Vector Radar ─────────────────────────────────
 let radarValues = [0.7, 0.4, 0.6, 0.3, 0.8, 0.5];
 const RADAR_LABELS = ['Network', 'Endpoint', 'Identity', 'Data', 'App', 'Supply'];
-
 function drawRadar() {
   const canvas = document.getElementById('radarCanvas');
   if (!canvas) return;
@@ -185,8 +150,6 @@ function drawRadar() {
   const cx = W / 2, cy = H / 2, r = Math.min(cx, cy) - 30;
   const n = radarValues.length;
   const step = (Math.PI * 2) / n;
-
-  // Grid
   for (let ring = 1; ring <= 4; ring++) {
     ctx.beginPath();
     for (let i = 0; i < n; i++) {
@@ -199,7 +162,6 @@ function drawRadar() {
     ctx.strokeStyle = 'rgba(94,184,212,0.1)';
     ctx.stroke();
   }
-  // Spokes
   for (let i = 0; i < n; i++) {
     const a = step * i - Math.PI / 2;
     ctx.beginPath();
@@ -208,7 +170,6 @@ function drawRadar() {
     ctx.strokeStyle = 'rgba(126,200,200,0.1)';
     ctx.stroke();
   }
-  // Data polygon
   ctx.beginPath();
   for (let i = 0; i < n; i++) {
     const a = step * i - Math.PI / 2;
@@ -226,7 +187,6 @@ function drawRadar() {
   ctx.lineWidth = 1.5;
   ctx.stroke();
   ctx.lineWidth = 1;
-  // Labels
   for (let i = 0; i < n; i++) {
     const a = step * i - Math.PI / 2;
     const lx = cx + (r + 18) * Math.cos(a);
@@ -238,7 +198,6 @@ function drawRadar() {
     ctx.fillText(RADAR_LABELS[i], lx, ly);
   }
 }
-
 function updateRadar() {
   radarValues = radarValues.map(v => {
     const drift = (Math.random() - 0.5) * 0.05;
@@ -246,10 +205,7 @@ function updateRadar() {
   });
   drawRadar();
 }
-
-// ── 3. Network Traffic Canvas ──────────────────────────────
 let trafficHistory = Array(60).fill(0);
-
 function drawTraffic() {
   const canvas = document.getElementById('trafficCanvas');
   if (!canvas) return;
@@ -257,19 +213,14 @@ function drawTraffic() {
   const W = canvas.offsetWidth || 280, H = 200;
   canvas.width = W;
   ctx.clearRect(0, 0, W, H);
-
-  // Define margins for axes
   const marginLeft = 45;
   const marginBottom = 25;
   const marginTop = 15;
   const marginRight = 15;
   const gw = W - marginLeft - marginRight;
   const gh = H - marginTop - marginBottom;
-
   const sw = gw / Math.max(trafficHistory.length - 1, 1);
   const max = Math.max(...trafficHistory, 1);
-
-  // Area fill
   ctx.beginPath();
   trafficHistory.forEach((v, i) => {
     const x = marginLeft + i * sw;
@@ -284,8 +235,6 @@ function drawTraffic() {
   grad.addColorStop(1, 'rgba(126,200,200,0)');
   ctx.fillStyle = grad;
   ctx.fill();
-
-  // Line
   ctx.beginPath();
   trafficHistory.forEach((v, i) => {
     const x = marginLeft + i * sw;
@@ -296,20 +245,14 @@ function drawTraffic() {
   ctx.lineWidth = 1.5;
   ctx.stroke();
   ctx.lineWidth = 1;
-
-  // Axes lines
   ctx.beginPath();
   ctx.moveTo(marginLeft, marginTop);
   ctx.lineTo(marginLeft, marginTop + gh);
   ctx.lineTo(marginLeft + gw, marginTop + gh);
   ctx.strokeStyle = 'rgba(113,139,168,0.4)';
   ctx.stroke();
-
-  // X and Y axis labels & ticks
   ctx.fillStyle = 'rgba(113,139,168,0.8)';
   ctx.font = '10px Inter, sans-serif';
-
-  // Y-axis ticks
   ctx.textAlign = 'right';
   ctx.textBaseline = 'middle';
   for (let i = 0; i <= 2; i++) {
@@ -322,8 +265,6 @@ function drawTraffic() {
     ctx.strokeStyle = 'rgba(113,139,168,0.4)';
     ctx.stroke();
   }
-
-  // Y-axis label
   ctx.save();
   ctx.translate(12, marginTop + gh / 2);
   ctx.rotate(-Math.PI / 2);
@@ -331,23 +272,17 @@ function drawTraffic() {
   ctx.textBaseline = 'middle';
   ctx.fillText('Traffic Volume', 0, 0);
   ctx.restore();
-
-  // X-axis label
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
   ctx.fillText('Time (Last 60s)', marginLeft + gw / 2, marginTop + gh + 10);
 }
-
 function updateTraffic() {
   const base = STATE.attackInProgress ? rand(400, 900) : rand(80, 200);
   trafficHistory.push(base);
   trafficHistory.shift();
   drawTraffic();
 }
-
-// ── 4. Protocol Distribution Pie ──────────────────────────
 let protocolCounts = { TCP: 45, UDP: 18, HTTP: 12, HTTPS: 32, DNS: 8, ICMP: 5, SMTP: 3 };
-
 function drawProtocol() {
   const canvas = document.getElementById('protocolCanvas');
   if (!canvas) return;
@@ -360,7 +295,6 @@ function drawProtocol() {
   const keys = Object.keys(protocolCounts);
   const cx = 90, cy = H / 2, r = 70;
   let startAngle = -Math.PI / 2;
-
   keys.forEach((k, i) => {
     const slice = (protocolCounts[k] / total) * Math.PI * 2;
     ctx.beginPath();
@@ -374,8 +308,6 @@ function drawProtocol() {
     ctx.stroke();
     startAngle += slice;
   });
-
-  // Legend
   keys.forEach((k, i) => {
     const lx = 180, ly = 20 + i * 24;
     ctx.fillStyle = COLORS[i % COLORS.length];
@@ -386,12 +318,9 @@ function drawProtocol() {
     ctx.fillText(`${k} (${Math.round(protocolCounts[k] / total * 100)}%)`, lx + 16, ly);
   });
 }
-
-// ── 5. Anomaly Baseline Canvas ────────────────────────────
 let baselineData = Array(80).fill(0).map((_, i) => 100 + 20 * Math.sin(i * 0.3) + rand(-5, 5));
 let observedData = [...baselineData].map(v => v + rand(-3, 3));
 let anomalyPoints = [];
-
 function drawAnomalyChart() {
   const canvas = document.getElementById('anomalyCanvas');
   if (!canvas) return;
@@ -405,8 +334,6 @@ function drawAnomalyChart() {
   const minV = Math.min(...baselineData, ...observedData, 0);
   const range = maxV - minV + 10;
   const toY = v => H - 16 - ((v - minV) / range) * (H - 32);
-
-  // Baseline band
   ctx.beginPath();
   baselineData.forEach((v, i) => {
     const x = i * sw, y = toY(v + 20);
@@ -418,8 +345,6 @@ function drawAnomalyChart() {
   ctx.closePath();
   ctx.fillStyle = 'rgba(126,200,200,0.04)';
   ctx.fill();
-
-  // Baseline line
   ctx.beginPath();
   baselineData.forEach((v, i) => {
     const x = i * sw, y = toY(v);
@@ -429,8 +354,6 @@ function drawAnomalyChart() {
   ctx.setLineDash([6, 3]);
   ctx.stroke();
   ctx.setLineDash([]);
-
-  // Observed line
   ctx.beginPath();
   observedData.forEach((v, i) => {
     const x = i * sw, y = toY(v);
@@ -440,8 +363,6 @@ function drawAnomalyChart() {
   ctx.lineWidth = 1.5;
   ctx.stroke();
   ctx.lineWidth = 1;
-
-  // Anomaly points
   anomalyPoints.forEach(({ idx, val }) => {
     if (idx >= n) return;
     const x = idx * sw, y = toY(val);
@@ -454,8 +375,6 @@ function drawAnomalyChart() {
     ctx.stroke();
     ctx.lineWidth = 1;
   });
-
-  // Legend
   ctx.fillStyle = 'rgba(126,200,200,0.4)'; ctx.fillRect(10, 5, 16, 3);
   ctx.fillStyle = 'rgba(113,139,168,0.8)'; ctx.font = '11px Inter'; ctx.textBaseline = 'top';
   ctx.fillText('Baseline', 32, 1);
@@ -466,10 +385,7 @@ function drawAnomalyChart() {
   ctx.fillStyle = 'rgba(113,139,168,0.8)';
   ctx.fillText('Anomaly', 212, 1);
 }
-
-// ── 6. Risk Distribution Canvas ───────────────────────────
 const riskBuckets = { Low: 0, Medium: 0, High: 0, Critical: 0 };
-
 function drawRiskDist() {
   const canvas = document.getElementById('riskDistCanvas');
   if (!canvas) return;
@@ -500,12 +416,9 @@ function drawRiskDist() {
     ctx.fillText(v, x + (bw - 12) / 2, y - 14);
   });
 }
-
-// ── 7. ML Training Chart ──────────────────────────────────
 let trainingLoss = [];
 let trainingAcc = [];
 const MAX_TRAIN_PTS = 80;
-
 function drawTrainingChart() {
   const canvas = document.getElementById('trainingCanvas');
   if (!canvas) return;
@@ -516,8 +429,6 @@ function drawTrainingChart() {
   const n = trainingLoss.length;
   if (n < 2) return;
   const sw = W / (n - 1);
-
-  // Loss
   ctx.beginPath();
   trainingLoss.forEach((v, i) => {
     const x = i * sw, y = H - (v / 1.2) * (H - 20) - 10;
@@ -526,8 +437,6 @@ function drawTrainingChart() {
   ctx.strokeStyle = 'rgba(194,122,110,0.5)';
   ctx.lineWidth = 1.5;
   ctx.stroke();
-
-  // Accuracy
   ctx.beginPath();
   trainingAcc.forEach((v, i) => {
     const x = i * sw, y = H - v * (H - 20) - 10;
@@ -536,8 +445,6 @@ function drawTrainingChart() {
   ctx.strokeStyle = 'rgba(130,185,154,0.6)';
   ctx.stroke();
   ctx.lineWidth = 1;
-
-  // Labels
   ctx.fillStyle = '#c27a6e'; ctx.fillRect(10, 6, 14, 3);
   ctx.fillStyle = 'rgba(113,139,168,0.8)'; ctx.font = '11px Inter'; ctx.textBaseline = 'top';
   ctx.fillText('Loss', 30, 2);
@@ -545,18 +452,15 @@ function drawTrainingChart() {
   ctx.fillStyle = 'rgba(113,139,168,0.8)';
   ctx.fillText('Accuracy', 100, 2);
 }
-
 function updateMLTraining() {
   STATE.epochs++;
   const t = STATE.epochs / 200;
   STATE.loss = Math.max(0.01, 1 - 0.97 * (1 - Math.exp(-5 * t)) + rand(-0.005, 0.005));
   const acc = Math.min(1, 0.97 * (1 - Math.exp(-5 * t)) + rand(-0.005, 0.005));
   const f1 = Math.min(1, acc * 0.99);
-
   trainingLoss.push(STATE.loss);
   trainingAcc.push(acc);
   if (trainingLoss.length > MAX_TRAIN_PTS) { trainingLoss.shift(); trainingAcc.shift(); }
-
   const ae = document.getElementById('ml-epochs');
   const al = document.getElementById('ml-loss');
   const av = document.getElementById('ml-vacc');
@@ -565,12 +469,9 @@ function updateMLTraining() {
   if (al) al.textContent = STATE.loss.toFixed(4);
   if (av) av.textContent = (acc * 100).toFixed(1) + '%';
   if (af) af.textContent = f1.toFixed(3);
-
   STATE.accuracy = 97 + acc * 0.4;
   drawTrainingChart();
 }
-
-// ── 8. Confusion Matrix ───────────────────────────────────
 function drawConfusion() {
   const canvas = document.getElementById('confusionCanvas');
   if (!canvas) return;
@@ -582,7 +483,6 @@ function drawConfusion() {
   const n = labels.length;
   const size = Math.min(W, H - 20) / (n + 1);
   const offX = 70, offY = 24;
-
   labels.forEach((l, i) => {
     ctx.fillStyle = 'rgba(122,155,191,0.6)';
     ctx.font = '9.5px Inter';
@@ -593,7 +493,6 @@ function drawConfusion() {
     ctx.textBaseline = 'bottom';
     ctx.fillText(l, offX + (i + 0.5) * size, offY - 2);
   });
-
   for (let r = 0; r < n; r++) {
     for (let c = 0; c < n; c++) {
       const val = r === c ? rand(0.85, 0.98) : rand(0, 0.08);
@@ -610,8 +509,6 @@ function drawConfusion() {
     }
   }
 }
-
-// ── 9. Process Chain Canvas ───────────────────────────────
 function drawProcessChain() {
   const canvas = document.getElementById('processCanvas');
   if (!canvas) return;
@@ -655,34 +552,39 @@ function drawProcessChain() {
     ctx.fillText(label, x * W, y * H + 14);
   });
 }
-
-// ═══════════════════════════════════════════════════════════════
-//   LIVE FEEDS & STREAMS
-// ═══════════════════════════════════════════════════════════════
-
-// ── Threat Feed ───────────────────────────────────────────────
 function addThreatFeedItem() {
   const threat = pick(THREAT_TYPES);
-  const feed = document.getElementById('threat-feed');
-  if (!feed) return;
   const div = document.createElement('div');
   div.className = `threat-item ${threat.sev}`;
   div.innerHTML = `
     <span class="ti-sev ${threat.sev}">${threat.sev.toUpperCase()}</span>
     <span class="ti-msg">${threat.name} from ${randomIP()}</span>
     <span class="ti-time">${now()}</span>`;
+  _injectThreatFeedItem(div);
+}
+function addThreatFeedItemFromData(data) {
+  if (!data) return;
+  const sev = data.severity || 'medium';
+  const div = document.createElement('div');
+  div.className = `threat-item ${sev}`;
+  div.innerHTML = `
+    <span class="ti-sev ${sev}">${sev.toUpperCase()}</span>
+    <span class="ti-msg">${data.name || 'Unknown Threat'} from ${data.source || randomIP()}</span>
+    <span class="ti-time">${now()}</span>`;
+  _injectThreatFeedItem(div);
+}
+function _injectThreatFeedItem(div) {
+  const feed = document.getElementById('threat-feed');
+  if (!feed) return;
   feed.insertBefore(div, feed.firstChild);
   while (feed.children.length > 12) feed.lastChild.remove();
 }
-
-// ── Event Stream ──────────────────────────────────────────────
 const STREAM_TYPES = [
   { t: 'ALLOW', c: 'allow', msgs: ['TCP connection accepted', 'HTTPS handshake OK', 'DNS query resolved', 'Auth token validated'] },
   { t: 'DENY', c: 'deny', msgs: ['Blacklisted IP blocked', 'SYN flood dropped', 'Bot signature matched', 'Rule 4412 triggered'] },
   { t: 'WARN', c: 'warn', msgs: ['Rate limit threshold', 'Unusual port access', 'GeoIP mismatch', 'Certificate expiring'] },
   { t: 'INFO', c: 'info', msgs: ['Policy updated', 'Scan completed', 'Model checkpoint saved', 'Ruleset refreshed'] },
 ];
-
 function addStreamEvent() {
   if (STATE.streamPaused) return;
   const el = document.getElementById('event-stream');
@@ -698,7 +600,6 @@ function addStreamEvent() {
   el.insertBefore(line, el.firstChild);
   while (el.children.length > 60) el.lastChild.remove();
 }
-
 function toggleStream() {
   STATE.streamPaused = !STATE.streamPaused;
   const btn = document.getElementById('stream-toggle');
@@ -708,8 +609,6 @@ function clearStream() {
   const el = document.getElementById('event-stream');
   if (el) el.innerHTML = '';
 }
-
-// ── IP Table ──────────────────────────────────────────────────
 const attackerIPs = {};
 function updateIPTable() {
   const ip = randomIP();
@@ -728,8 +627,6 @@ function updateIPTable() {
     el.appendChild(row);
   });
 }
-
-// ── Anomaly Log ───────────────────────────────────────────────
 let anomalyCount = 0;
 function addAnomalyLog() {
   const types = ['BruteForce', 'DataExfil', 'LateralMove', 'DDoSPattern', 'ZeroDay'];
@@ -748,19 +645,14 @@ function addAnomalyLog() {
     <span class="alog-desc">Z-score: ${rand(2, 5).toFixed(2)} σ — Model: LSTM-v3</span>`;
   el.insertBefore(row, el.firstChild);
   while (el.children.length > 20) el.lastChild.remove();
-
   STATE.anomalies++;
   anomalyCount++;
-
-  // Update baseline/observed
   const idx = randInt(10, baselineData.length - 1);
   const spike = baselineData[idx] + rand(40, 80);
   observedData[idx] = spike;
   anomalyPoints.push({ idx, val: spike });
   if (anomalyPoints.length > 8) anomalyPoints.shift();
   drawAnomalyChart();
-
-  // Update categories
   if (type === 'BruteForce') { STATE.attacks.bf++; }
   else if (type === 'DataExfil') { STATE.attacks.de++; }
   else if (type === 'LateralMove') { STATE.attacks.lm++; }
@@ -770,7 +662,6 @@ function addAnomalyLog() {
   riskBuckets[score > 0.85 ? 'Critical' : score > 0.7 ? 'High' : score > 0.5 ? 'Medium' : 'Low']++;
   drawRiskDist();
 }
-
 function updateAnomalyCategories() {
   const total = Math.max(1, STATE.attacks.bf + STATE.attacks.de + STATE.attacks.lm + STATE.attacks.dd + STATE.attacks.zd);
   const upd = (id, fillId, val) => {
@@ -785,15 +676,12 @@ function updateAnomalyCategories() {
   upd('ac-dd', 'dd', STATE.attacks.dd);
   upd('ac-zd', 'zd', STATE.attacks.zd);
 }
-
-// ── Audit Log ─────────────────────────────────────────────────
 const EVENT_TYPES = [
   { t: 'BLOCK', c: 'block', msgs: ['Malicious IP blocked', 'Intrusion attempt denied', 'Ransomware quarantined', 'C2 channel severed'] },
   { t: 'ALLOW', c: 'allow', msgs: ['Trusted connection allowed', 'Policy allowlist matched', 'Auth success'] },
   { t: 'POLICY', c: 'policy', msgs: ['Firewall rule updated', 'Defense posture changed', 'Threshold adjusted'] },
   { t: 'SYSTEM', c: 'system', msgs: ['ML model retrained', 'Snapshot checkpoint', 'Merkle tree anchored', 'SIEM synchronized'] },
 ];
-
 function addAuditLog() {
   const el = document.getElementById('audit-log');
   if (!el) return;
@@ -810,7 +698,6 @@ function addAuditLog() {
     <span class="ar-hash">0x${hash}</span>`;
   el.insertBefore(row, el.firstChild);
   while (el.children.length > 30) el.lastChild.remove();
-
   STATE.chainLength++;
   const lh = document.getElementById('latest-hash');
   const cl = document.getElementById('chain-length');
@@ -819,8 +706,6 @@ function addAuditLog() {
   if (cl) cl.textContent = STATE.chainLength;
   if (mr) mr.textContent = '0x' + fullHash();
 }
-
-// ── Response Timeline ─────────────────────────────────────────
 function addResponseTimeline(title, type) {
   const el = document.getElementById('response-timeline');
   if (!el) return;
@@ -834,8 +719,6 @@ function addResponseTimeline(title, type) {
   el.insertBefore(item, el.firstChild);
   while (el.children.length > 15) el.lastChild.remove();
 }
-
-// ── Decision Matrix ───────────────────────────────────────────
 const DM_ACTIONS = ['IP Blacklist', 'IDS Rule Push', 'Segment Isolate', 'Rate Limit', 'Honeypot Redirect', 'Auto-Patch', 'MFA Enforce'];
 let dmRows = 0;
 function addDecisionMatrixRow(threat) {
@@ -857,11 +740,8 @@ function addDecisionMatrixRow(threat) {
   if (tbody.rows.length > 10) tbody.deleteRow(tbody.rows.length - 1);
   dmRows++;
 }
-
-// ─── MITRE ATT&CK Grid ───────────────────────────────────────
 const MITRE_TACTICS = ['Recon', 'Resource\nDev', 'Initial\nAccess', 'Execution', 'Persistence', 'Priv Esc', 'Defense\nEvasion', 'Cred\nAccess', 'Discovery', 'Lateral\nMove', 'Collection', 'Exfiltration'];
 const MITRE_TECHS = ['T1595', 'T1583', 'T1133', 'T1059', 'T1547', 'T1068', 'T1027', 'T1003', 'T1082', 'T1021', 'T1056', 'T1048'];
-
 function buildMitreGrid() {
   const el = document.getElementById('mitre-grid');
   if (!el) return;
@@ -882,8 +762,6 @@ function buildMitreGrid() {
     });
   }
 }
-
-// ─── ML Predictions ──────────────────────────────────────────
 const PREDICTIONS = [
   { name: 'Brute Force Login', prob: 0.72 },
   { name: 'Ransomware Deploy', prob: 0.45 },
@@ -891,7 +769,6 @@ const PREDICTIONS = [
   { name: 'DDoS Campaign', prob: 0.61 },
   { name: 'APT Intrusion', prob: 0.29 },
 ];
-
 function buildPredictions() {
   const el = document.getElementById('predictions-list');
   if (!el) return;
@@ -910,24 +787,14 @@ function buildPredictions() {
     }, 200 + i * 100);
   });
 }
-
-// ═══════════════════════════════════════════════════════════════
-//   SIMULATED ATTACK ENGINE
-// ═══════════════════════════════════════════════════════════════
-
 const KILL_CHAIN_IDS = ['kc-recon', 'kc-weapon', 'kc-delivery', 'kc-exploit', 'kc-install', 'kc-c2', 'kc-action'];
-
 function triggerSimulatedAttack() {
   if (STATE.attackInProgress) return;
   STATE.attackInProgress = true;
   setThreatLevel('CRITICAL');
-
   const threat = THREAT_TYPES.find(t => t.sev === 'critical') || THREAT_TYPES[2];
-
   showAlert(`⚠ ATTACK DETECTED — ${threat.name}`,
     `Source: ${randomIP()} → Autonomous response initiated: ${threat.action}`);
-
-  // Progress kill chain
   let step = 0;
   KILL_CHAIN_IDS.forEach(id => {
     const el = document.getElementById(id);
@@ -937,11 +804,9 @@ function triggerSimulatedAttack() {
       el.querySelector('.kc-status').textContent = 'MONITOR';
     }
   });
-
   const kcInterval = setInterval(() => {
     if (step >= KILL_CHAIN_IDS.length) {
       clearInterval(kcInterval);
-      // Auto-mitigate
       setTimeout(() => {
         KILL_CHAIN_IDS.forEach(id => {
           const el = document.getElementById(id);
@@ -961,7 +826,6 @@ function triggerSimulatedAttack() {
       }, 2000);
       return;
     }
-
     const id = KILL_CHAIN_IDS[step];
     const el = document.getElementById(id);
     if (el) {
@@ -970,19 +834,15 @@ function triggerSimulatedAttack() {
       st.className = 'kc-status active';
       st.textContent = 'DETECTED';
     }
-
     addThreatFeedItem();
     addResponseTimeline(`Detecting: ${id.replace('kc-', '')} phase — ${randomIP()}`, 'danger');
     addDecisionMatrixRow(threat);
     addAuditLog();
     STATE.blockedCount++;
     document.getElementById('sidebar-mode').textContent = 'COMBAT';
-
     step++;
   }, 900);
 }
-
-// ─── Playbook Activation ──────────────────────────────────────
 function activatePlaybook(name) {
   const key = name.toLowerCase();
   const pb = document.getElementById(`pb-${key}`);
@@ -997,8 +857,6 @@ function activatePlaybook(name) {
   addResponseTimeline(`Playbook '${name}' activated`, 'info');
   STATE.neutralized++;
 }
-
-// ─── Alert System ─────────────────────────────────────────────
 function showAlert(msg, detail) {
   document.getElementById('alert-msg').textContent = msg;
   document.getElementById('alert-detail').textContent = detail;
@@ -1007,9 +865,15 @@ function showAlert(msg, detail) {
 function closeAlert() {
   document.getElementById('alert-overlay').style.display = 'none';
 }
-
-// ─── Log Export ───────────────────────────────────────────────
 function exportLogs() {
+  if (typeof AEGIS_API !== 'undefined') {
+    const url = AEGIS_API.forensics.exportUrl();
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `AEGIS_forensic_${Date.now()}.log`;
+    a.click();
+    return;
+  }
   const rows = document.querySelectorAll('.audit-row');
   let text = 'AEGIS FORENSIC AUDIT LOG — TAMPER-RESISTANT EXPORT\n';
   text += '='.repeat(60) + '\n';
@@ -1022,36 +886,61 @@ function exportLogs() {
   a.click();
   URL.revokeObjectURL(url);
 }
-
-// ─── ML Report Export ───────────────────────────────────────────
 let reportGenerating = false;
-
 function generateMLReport() {
   if (reportGenerating) return;
   reportGenerating = true;
-
   const btn = document.getElementById('btn-generate-report');
   const card = document.getElementById('report-card');
   const badge = document.getElementById('report-badge');
   const status = document.getElementById('report-status-text');
   const bar = document.getElementById('report-bar');
   const output = document.getElementById('report-output');
-
   if (btn) btn.disabled = true;
   if (card) card.style.display = 'block';
-  if (badge) {
-    badge.textContent = 'GENERATING';
-    badge.className = 'card-badge running';
-  }
-  if (status) status.textContent = 'Initializing generation sequence...';
+  if (badge) { badge.textContent = 'GENERATING'; badge.className = 'card-badge running'; }
+  if (status) status.textContent = 'Contacting ML Engine...';
   if (bar) bar.style.width = '5%';
   if (output) output.textContent = '';
-
+  if (typeof AEGIS_API !== 'undefined') {
+    AEGIS_API.ml.generateReport().then(r => {
+      if (r.ok && r.data.report) {
+        const report = r.data.report;
+        const text = report.markdown || JSON.stringify(report, null, 2);
+        if (bar) bar.style.width = '70%';
+        if (status) status.textContent = 'Formatting report from backend...';
+        const lines = text.split('\n');
+        let lineIdx = 0;
+        const typeInterval = setInterval(() => {
+          if (lineIdx < lines.length) {
+            if (output) { output.textContent += lines[lineIdx] + '\n'; output.scrollTop = output.scrollHeight; }
+            lineIdx++;
+          } else {
+            clearInterval(typeInterval);
+            if (bar) bar.style.width = '100%';
+            if (status) status.textContent = 'Complete! Preparing download...';
+            if (badge) { badge.textContent = 'COMPLETE'; badge.className = 'card-badge live'; }
+            const blob = new Blob([text], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = `AEGIS_ML_Report_${Date.now()}.md`; a.click();
+            URL.revokeObjectURL(url);
+            setTimeout(() => { if (btn) btn.disabled = false; reportGenerating = false; }, 2000);
+          }
+        }, 80);
+        return;
+      }
+      generateMLReportFallback(btn, card, badge, status, bar, output);
+    }).catch(() => generateMLReportFallback(btn, card, badge, status, bar, output));
+    return;
+  }
+  generateMLReportFallback(btn, card, badge, status, bar, output);
+}
+function generateMLReportFallback(btn, card, badge, status, bar, output) {
   const epochs = document.getElementById('ml-epochs')?.textContent || '0';
   const loss = document.getElementById('ml-loss')?.textContent || '0.000';
   const vacc = document.getElementById('ml-vacc')?.textContent || '0.0%';
   const f1 = document.getElementById('ml-f1')?.textContent || '0.000';
-
   let text = `# AEGIS Machine Learning Engine - Auto-Training Report\n\n`;
   text += `Generated: ${new Date().toISOString()}\n\n`;
   text += `## Model Performance\n`;
@@ -1064,15 +953,11 @@ function generateMLReport() {
   text += `- Threat Model Status: EVOLVING\n`;
   text += `- Latest Checkpoint: SAVED\n\n`;
   text += `*Report automatically generated by AEGIS Head Agent.*\n`;
-
   const lines = text.split('\n');
   let lineIdx = 0;
-
   setTimeout(() => {
     if (status) status.textContent = 'Extracting model metadata and metrics...';
     if (bar) bar.style.width = '30%';
-
-    // Type lines out
     const typeInterval = setInterval(() => {
       if (lineIdx < lines.length) {
         if (output) {
@@ -1084,14 +969,11 @@ function generateMLReport() {
         clearInterval(typeInterval);
       }
     }, 100);
-
   }, 1000);
-
   setTimeout(() => {
     if (status) status.textContent = 'Formatting markdown structure...';
     if (bar) bar.style.width = '70%';
   }, 2500);
-
   setTimeout(() => {
     if (status) status.textContent = 'Complete! Preparing download...';
     if (bar) bar.style.width = '100%';
@@ -1099,8 +981,6 @@ function generateMLReport() {
       badge.textContent = 'COMPLETE';
       badge.className = 'card-badge live';
     }
-
-    // Trigger download
     const blob = new Blob([text], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1108,93 +988,51 @@ function generateMLReport() {
     a.download = `AEGIS_ML_Report_${Date.now()}.md`;
     a.click();
     URL.revokeObjectURL(url);
-
-    // Reset after delay
     setTimeout(() => {
       if (btn) btn.disabled = false;
       reportGenerating = false;
     }, 2000);
-
   }, 4000);
 }
-
-// ─── Inference Log ──────────────────────────────────────────────
 function updateInferenceLog() {
   const log = document.getElementById('inference-log');
   if (!log) return;
-
   const isMalicious = Math.random() < 0.1;
   const isSusp = Math.random() < 0.25;
   const type = isMalicious ? 'malicious' : (isSusp ? 'suspicious' : 'benign');
   const statusText = isMalicious ? 'BLOCK' : (isSusp ? 'FLAG' : 'PASS');
-
-  // Random confidence between 90.0 and 99.9
   const conf = (Math.random() * 9 + 90).toFixed(1);
-
   const ips = ['192.168.1.14', '10.0.0.8', '172.16.0.4', '198.51.100.2', '10.5.21.3', '45.33.12.98'];
   const ip = ips[Math.floor(Math.random() * ips.length)];
   const time = new Date().toISOString().split('T')[1].substring(0, 12);
-
   const div = document.createElement('div');
   div.className = `inf-row ${type}`;
   div.innerHTML = `<span>[${time}] ${ip}</span><span>Conf: ${conf}%</span><span>${statusText}</span>`;
-
   log.prepend(div);
   if (log.children.length > 30) log.lastChild.remove();
 }
-
-// ═══════════════════════════════════════════════════════════════
-//   MAIN SIMULATION LOOP
-// ═══════════════════════════════════════════════════════════════
-
 let tick = 0;
-
 function simulationLoop() {
   tick++;
   STATE.eventsPerSec = randInt(120, STATE.attackInProgress ? 850 : 350);
-
-  // Core charts (~600ms)
   updateHeatmap();
   updateRadar();
   updateTraffic();
-
-  // Threat feed every 2s
   if (tick % 2 === 0) addThreatFeedItem();
-
-  // Stream events every 800ms
   addStreamEvent();
-
-  // Inference log updates
   if (tick % 2 === 0) updateInferenceLog();
-
-  // Anomaly every 3s
   if (tick % 3 === 0) addAnomalyLog();
-
-  // Audit log every 2s
   if (tick % 2 === 1) addAuditLog();
-
-  // IP table every 4s
   if (tick % 4 === 0) updateIPTable();
-
-  // Decision matrix every 5s
   if (tick % 5 === 0) addDecisionMatrixRow();
-
-  // Timeline every 6s
   if (tick % 6 === 0) {
     const msgs = ['Baseline update applied', 'Signature DB refreshed', 'Model inference complete', 'Policy sync OK'];
     addResponseTimeline(pick(msgs), 'info');
   }
-
-  // ML training every tick
   updateMLTraining();
-
-  // Rebuild confusion every 10s
   if (tick % 10 === 0) drawConfusion();
-
   updateKPIs();
 }
-
-// ─── Resize canvases on window resize ────────────────────────
 function resizeCanvases() {
   drawRadar();
   drawTraffic();
@@ -1205,8 +1043,6 @@ function resizeCanvases() {
   drawProcessChain();
   drawProtocol();
 }
-
-// ─── Init ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   buildMitreGrid();
   buildPredictions();
@@ -1216,8 +1052,6 @@ document.addEventListener('DOMContentLoaded', () => {
   drawAnomalyChart();
   drawProtocol();
   setThreatLevel('MODERATE');
-
-  // Seed initial data
   for (let i = 0; i < 5; i++) {
     addThreatFeedItem();
     addStreamEvent();
@@ -1228,27 +1062,13 @@ document.addEventListener('DOMContentLoaded', () => {
   addResponseTimeline('System Online — All Defense Layers Active', 'success');
   addResponseTimeline('ML Threat Model v3.1 Loaded', 'info');
   addResponseTimeline('Initial Baseline Scan Complete', 'info');
-
-  // Start main loop (600ms)
   setInterval(simulationLoop, 600);
-
-  // Radar/heatmap update slightly faster
   setInterval(() => { drawRadar(); }, 800);
   setInterval(() => { updateHeatmap(); }, 700);
   setInterval(() => { drawTraffic(); }, 700);
-
   window.addEventListener('resize', resizeCanvases);
-
-  // ── Agent Network init ──────────────────────────────
   initAgentNetwork();
 });
-
-
-// ═══════════════════════════════════════════════════════════════
-//   AUTONOMOUS MULTI-AGENT NETWORK ENGINE
-// ═══════════════════════════════════════════════════════════════
-
-/* ── Agent State ───────────────────────────────────────────── */
 const AGENT_STATE = {
   head: { directives: 0, escalations: 0 },
   mon: { events: 0, alerts: 0 },
@@ -1256,9 +1076,6 @@ const AGENT_STATE = {
   rca: { actions: 0, rollbacks: 0, times: [] },
   lea: { updates: 0, audits: 0, kb: 0 },
 };
-
-/* ── Agent Node positions for canvas (relative 0-1) ───────── */
-// Layout: Head at top-centre; 4 sub-agents in a row below
 const AGENT_NODES = {
   head: { x: 0.50, y: 0.20, label: 'HEAD', color: '#7ec8c8', glow: 'rgba(126,200,200,0.2)' },
   mon: { x: 0.15, y: 0.75, label: 'MON', color: '#7ec8c8', glow: 'rgba(126,200,200,0.15)' },
@@ -1271,17 +1088,11 @@ const AGENT_EDGES = [
   ['head', 'mon'], ['head', 'tia'], ['head', 'rca'], ['head', 'lea'],
   ['mon', 'tia'], ['tia', 'rca'], ['rca', 'lea'],
 ];
-
-/* ── Animated message particles on canvas ─────────────────── */
 let agentParticles = [];
-
 function spawnParticle(from, to, color) {
   agentParticles.push({ from, to, t: 0, color: color || '#7ec8c8' });
 }
-
-/* ── Topology Canvas ────────────────────────────────────────── */
 let agentCanvasTick = 0;
-
 function drawAgentCanvas() {
   const canvas = document.getElementById('agentCanvas');
   if (!canvas) return;
@@ -1291,14 +1102,10 @@ function drawAgentCanvas() {
   canvas.height = H;
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, W, H);
-
-  // Background grid
   ctx.strokeStyle = 'rgba(0,212,255,0.04)';
   ctx.lineWidth = 1;
   for (let x = 0; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
   for (let y = 0; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
-
-  // Edges
   AGENT_EDGES.forEach(([a, b]) => {
     const na = AGENT_NODES[a], nb = AGENT_NODES[b];
     const x1 = na.x * W, y1 = na.y * H, x2 = nb.x * W, y2 = nb.y * H;
@@ -1313,8 +1120,6 @@ function drawAgentCanvas() {
     ctx.stroke();
     ctx.lineWidth = 1;
   });
-
-  // Particles
   agentParticles = agentParticles.filter(p => p.t <= 1);
   agentParticles.forEach(p => {
     const na = AGENT_NODES[p.from], nb = AGENT_NODES[p.to];
@@ -1329,23 +1134,17 @@ function drawAgentCanvas() {
     ctx.shadowBlur = 0;
     p.t += 0.035;
   });
-
-  // Nodes
   agentCanvasTick++;
   AGENT_KEYS.forEach(key => {
     const n = AGENT_NODES[key];
     const x = n.x * W, y = n.y * H;
     const r = key === 'head' ? 30 : 22;
     const pulse = Math.sin(agentCanvasTick * 0.08 + AGENT_KEYS.indexOf(key) * 1.2) * 0.15 + 0.85;
-
-    // Outer glow ring
     ctx.beginPath();
     ctx.arc(x, y, r * pulse + 6, 0, Math.PI * 2);
     ctx.strokeStyle = n.glow;
     ctx.lineWidth = 1.5;
     ctx.stroke();
-
-    // Fill circle
     const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
     grad.addColorStop(0, n.color + '55');
     grad.addColorStop(1, n.color + '18');
@@ -1357,23 +1156,17 @@ function drawAgentCanvas() {
     ctx.lineWidth = 2;
     ctx.stroke();
     ctx.lineWidth = 1;
-
-    // Icon / label
     ctx.fillStyle = n.color;
     ctx.font = key === 'head' ? 'bold 11px Inter' : 'bold 10px Inter';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(n.label, x, y);
-
-    // Sub-label below
     const names = { head: 'War Room Orchestrator', mon: 'Monitor', tia: 'Threat Intel', rca: 'Response', lea: 'Learning & Audit' };
     ctx.fillStyle = 'rgba(122,155,191,0.85)';
     ctx.font = '9.5px Inter';
     ctx.textBaseline = 'top';
     ctx.fillText(names[key], x, y + r + 8);
   });
-
-  // Connectivity lines between Head and subs with labels
   ['mon', 'tia', 'rca', 'lea'].forEach(key => {
     const nh = AGENT_NODES.head, ns = AGENT_NODES[key];
     const mx = (nh.x + ns.x) / 2 * W, my = (nh.y + ns.y) / 2 * H;
@@ -1384,8 +1177,6 @@ function drawAgentCanvas() {
     ctx.fillText('↕', mx, my);
   });
 }
-
-/* ── Agent Mini-Log helper ─────────────────────────────────── */
 function agentLog(agentId, msg) {
   const el = document.getElementById('log-' + agentId);
   if (!el) return;
@@ -1395,26 +1186,19 @@ function agentLog(agentId, msg) {
   el.insertBefore(entry, el.firstChild);
   while (el.children.length > 6) el.lastChild.remove();
 }
-
-/* ── Agent Badge state ────────────────────────────────────── */
 function setAgentBadge(agentId, state) {
-  // state: 'online' | 'busy' | 'alert'
   const el = document.getElementById(agentId + '-badge');
   if (!el) return;
   el.className = 'agent-online-badge ' + (state === 'online' ? '' : state);
   el.textContent = state === 'online' ? 'ONLINE' : state === 'busy' ? 'BUSY' : 'ALERT';
 }
-
 function flashCard(agentId) {
   const el = document.getElementById('agent-' + agentId);
   if (!el) return;
   el.classList.add('firing');
   setTimeout(() => el.classList.remove('firing'), 700);
 }
-
-/* ── Message Bus ──────────────────────────────────────────── */
 const MSG_BUS_MAX = 60;
-
 function pushMessage(fromKey, toKey, body, tag) {
   const el = document.getElementById('agent-msgbus');
   if (!el) return;
@@ -1431,11 +1215,8 @@ function pushMessage(fromKey, toKey, body, tag) {
     <span class="msg-tag ${tag}">${tag.toUpperCase()}</span>`;
   el.insertBefore(row, el.firstChild);
   while (el.children.length > MSG_BUS_MAX) el.lastChild.remove();
-  // Animate a particle on canvas
   spawnParticle(fromKey, toKey, AGENT_NODES[fromKey].color);
 }
-
-/* ── Monitoring Agent update ──────────────────────────────── */
 const MON_MSGS = [
   'Port scan detected on subnet 10.0.1.0/24',
   'Unusual DNS query volume — 3.2× baseline',
@@ -1446,28 +1227,23 @@ const MON_MSGS = [
   'Network flow entropy increase detected',
   'Log ingestion rate: 45k events/sec',
 ];
-
 function updateMonitoringAgent() {
   const evDelta = randInt(800, 3200);
   const alDelta = Math.random() < 0.35 ? 1 : 0;
   AGENT_STATE.mon.events += evDelta;
   AGENT_STATE.mon.alerts += alDelta;
-
   const evEl = document.getElementById('am-mon-ev');
   const alEl = document.getElementById('am-mon-al');
   const fpEl = document.getElementById('am-mon-fp');
   if (evEl) evEl.textContent = AGENT_STATE.mon.events.toLocaleString();
   if (alEl) alEl.textContent = AGENT_STATE.mon.alerts;
   if (fpEl) fpEl.textContent = (1.2 + rand(-0.3, 0.3)).toFixed(1) + '%';
-
-  // Sensor bars
   const sensors = ['sb-net', 'sb-end', 'sb-log', 'sb-cld'];
   sensors.forEach(id => {
     const el = document.getElementById(id);
     const intensity = STATE.attackInProgress ? rand(70, 100) : rand(25, 70);
     if (el) el.style.width = intensity + '%';
   });
-
   if (alDelta) {
     const msg = pick(MON_MSGS);
     agentLog('mon', msg);
@@ -1477,8 +1253,6 @@ function updateMonitoringAgent() {
     setTimeout(() => setAgentBadge('mon', 'online'), 1200);
   }
 }
-
-/* ── Threat Intel & Risk Assessment Agent update ─────────── */
 const TIA_MSGS = [
   'IOC match: C2 IP 185.220.101.x in ThreatFox DB',
   'CVE-2024-1234 exploitation attempt — CVSS 9.8',
@@ -1489,7 +1263,6 @@ const TIA_MSGS = [
   'Ransomware family: LockBit 3.0 variant',
   'Zero-day indicator — no existing CVE found',
 ];
-
 function drawRiskGauge(score) {
   const canvas = document.getElementById('riskGaugeCanvas');
   if (!canvas) return;
@@ -1497,18 +1270,13 @@ function drawRiskGauge(score) {
   const W = canvas.offsetWidth || 220, H = 120;
   canvas.width = W; canvas.height = H;
   ctx.clearRect(0, 0, W, H);
-
   const cx = W / 2, cy = H - 14, r = Math.min(W, H * 2) * 0.4;
   const startA = Math.PI, endA = 2 * Math.PI;
-
-  // Background arc
   ctx.beginPath();
   ctx.arc(cx, cy, r, startA, endA);
   ctx.strokeStyle = 'rgba(255,255,255,0.08)';
   ctx.lineWidth = 14;
   ctx.stroke();
-
-  // Coloured filled arc
   const fillAngle = startA + (endA - startA) * score;
   const color = score > 0.8 ? '#c27a6e' : score > 0.6 ? '#d4985e' : score > 0.4 ? '#c9a862' : '#82b99a';
   const grd = ctx.createLinearGradient(0, cy, W, cy);
@@ -1522,8 +1290,6 @@ function drawRiskGauge(score) {
   ctx.lineCap = 'round';
   ctx.stroke();
   ctx.lineCap = 'butt';
-
-  // Needle
   const needleA = startA + (endA - startA) * score;
   ctx.beginPath();
   ctx.moveTo(cx, cy);
@@ -1532,14 +1298,10 @@ function drawRiskGauge(score) {
   ctx.lineWidth = 2;
   ctx.stroke();
   ctx.lineWidth = 1;
-
-  // Centre circle
   ctx.beginPath();
   ctx.arc(cx, cy, 6, 0, Math.PI * 2);
   ctx.fillStyle = '#fff';
   ctx.fill();
-
-  // Tick labels
   ['0', 'Low', 'Med', 'High', '10'].forEach((lbl, i) => {
     const a = startA + (endA - startA) * (i / 4);
     const lx = cx + (r + 16) * Math.cos(a), ly = cy + (r + 16) * Math.sin(a);
@@ -1549,8 +1311,6 @@ function drawRiskGauge(score) {
     ctx.textBaseline = 'middle';
     ctx.fillText(lbl, lx, ly);
   });
-
-  // Score label
   const lbl = document.getElementById('rg-label');
   const labels = score > 0.8 ? 'CRITICAL' : score > 0.6 ? 'HIGH' : score > 0.4 ? 'MEDIUM' : 'LOW';
   if (lbl) {
@@ -1558,7 +1318,6 @@ function drawRiskGauge(score) {
     lbl.style.color = color;
   }
 }
-
 function updateTIAAgent() {
   const iocDelta = Math.random() < 0.5 ? randInt(1, 3) : 0;
   const cveDelta = Math.random() < 0.25 ? 1 : 0;
@@ -1568,16 +1327,13 @@ function updateTIAAgent() {
   AGENT_STATE.tia.riskSum += riskScore;
   AGENT_STATE.tia.riskCount += 1;
   AGENT_STATE.tia.riskAvg = AGENT_STATE.tia.riskSum / AGENT_STATE.tia.riskCount;
-
   const iocEl = document.getElementById('am-tia-ioc');
   const rskEl = document.getElementById('am-tia-risk');
   const cveEl = document.getElementById('am-tia-cve');
   if (iocEl) iocEl.textContent = AGENT_STATE.tia.iocs;
   if (rskEl) rskEl.textContent = (AGENT_STATE.tia.riskAvg * 10).toFixed(2);
   if (cveEl) cveEl.textContent = AGENT_STATE.tia.cves;
-
   drawRiskGauge(riskScore);
-
   if (iocDelta || cveDelta) {
     const msg = pick(TIA_MSGS);
     agentLog('tia', msg);
@@ -1588,8 +1344,6 @@ function updateTIAAgent() {
     setTimeout(() => setAgentBadge('tia', 'online'), 1000);
   }
 }
-
-/* ── Response & Containment Agent update ─────────────────── */
 const RCA_ACTIONS_LIST = [
   { label: 'IP-BLOCK', cls: 'executed' },
   { label: 'ISOLATE', cls: 'executed' },
@@ -1600,7 +1354,6 @@ const RCA_ACTIONS_LIST = [
   { label: 'QUARANTINE', cls: 'executed' },
   { label: 'MFA-FORCE', cls: 'executed' },
 ];
-
 const RCA_MSGS = [
   'IP blacklist rule pushed to perimeter FW',
   'Segment 10.0.3.0/24 isolated — VLAN 99',
@@ -1611,7 +1364,6 @@ const RCA_MSGS = [
   'MFA policy enforced on all admin accounts',
   'C2 egress channel blocked on port 4444',
 ];
-
 function updateRCAAgent() {
   if (Math.random() < 0.3) {
     const actDelta = 1;
@@ -1621,15 +1373,12 @@ function updateRCAAgent() {
     const ms = randInt(80, 380);
     AGENT_STATE.rca.times.push(ms);
     const avgTime = Math.round(AGENT_STATE.rca.times.slice(-20).reduce((a, b) => a + b, 0) / Math.min(AGENT_STATE.rca.times.length, 20));
-
     const actEl = document.getElementById('am-rca-act');
     const tmEl = document.getElementById('am-rca-time');
     const rlEl = document.getElementById('am-rca-roll');
     if (actEl) actEl.textContent = AGENT_STATE.rca.actions;
     if (tmEl) tmEl.textContent = avgTime + 'ms';
     if (rlEl) rlEl.textContent = AGENT_STATE.rca.rollbacks;
-
-    // Add chip
     const actionData = isRollback
       ? RCA_ACTIONS_LIST.find(a => a.cls === 'rolled-back')
       : pick(RCA_ACTIONS_LIST.filter(a => a.cls === 'executed'));
@@ -1641,7 +1390,6 @@ function updateRCAAgent() {
       el.insertBefore(chip, el.firstChild);
       while (el.children.length > 10) el.lastChild.remove();
     }
-
     const msg = pick(RCA_MSGS);
     agentLog('rca', msg);
     setAgentBadge('rca', 'busy');
@@ -1651,8 +1399,6 @@ function updateRCAAgent() {
     setTimeout(() => setAgentBadge('rca', 'online'), 900);
   }
 }
-
-/* ── Learning & Audit Agent update ───────────────────────── */
 const LEA_MSGS = [
   'Model retrained with 128 new attack samples',
   'Forensic chain: block #%n anchored to ledger',
@@ -1663,21 +1409,18 @@ const LEA_MSGS = [
   'Baseline model drift: Δ=0.003 — within bounds',
   'Signature DB synced with global threat intel',
 ];
-
 function updateLEAAgent() {
   const updDelta = Math.random() < 0.25 ? 1 : 0;
   const audDelta = 1;
   AGENT_STATE.lea.updates += updDelta;
   AGENT_STATE.lea.audits += audDelta;
   AGENT_STATE.lea.kb += updDelta ? randInt(1, 5) : 0;
-
   const updEl = document.getElementById('am-lea-upd');
   const audEl = document.getElementById('am-lea-aud');
   const kbEl = document.getElementById('am-lea-kb');
   if (updEl) updEl.textContent = AGENT_STATE.lea.updates;
   if (audEl) audEl.textContent = AGENT_STATE.lea.audits;
   if (kbEl) kbEl.textContent = AGENT_STATE.lea.kb + ' entries';
-
   if (updDelta) {
     const msg = pick(LEA_MSGS).replace('%n', AGENT_STATE.lea.audits);
     agentLog('lea', msg);
@@ -1687,8 +1430,6 @@ function updateLEAAgent() {
     setTimeout(() => setAgentBadge('lea', 'online'), 800);
   }
 }
-
-/* ── Head Agent orchestration ─────────────────────────────── */
 const HEAD_DIRECTIVES = [
   'DIRECTIVE → MON: increase scan frequency on subnet 10.0.2.0/24',
   'DIRECTIVE → TIA: correlate IOC set #A4F7 with recent alerts',
@@ -1699,17 +1440,14 @@ const HEAD_DIRECTIVES = [
   'DIRECTIVE → TIA: run CVE lookup for payload signature 0xDE4D',
   'DIRECTIVE → MON: switch to deep-packet inspection mode',
 ];
-
 function updateHeadAgent() {
   if (Math.random() < 0.4) {
     AGENT_STATE.head.directives++;
     if (Math.random() < 0.15) AGENT_STATE.head.escalations++;
-
     const dirEl = document.getElementById('am-head-dir');
     const escEl = document.getElementById('am-head-esc');
     if (dirEl) dirEl.textContent = AGENT_STATE.head.directives;
     if (escEl) escEl.textContent = AGENT_STATE.head.escalations;
-
     const msg = pick(HEAD_DIRECTIVES);
     const targets = ['mon', 'tia', 'rca', 'lea'];
     const target = pick(targets);
@@ -1719,10 +1457,7 @@ function updateHeadAgent() {
     spawnParticle('head', target, '#00d4ff');
   }
 }
-
-/* ── Agent incident simulation ("Trigger Incident" button) ── */
 let agentIncidentInProgress = false;
-
 const INCIDENT_STEPS = [
   {
     actor: 'mon', target: 'head', delay: 0,
@@ -1781,26 +1516,18 @@ const INCIDENT_STEPS = [
     desc: 'HEAD-AGENT: All agents nominal — threat neutralised'
   },
 ];
-
 function agentSimulateAttack() {
   if (agentIncidentInProgress) return;
   agentIncidentInProgress = true;
   const btn = document.getElementById('btn-agent-attack');
   if (btn) { btn.textContent = 'Incident Running...'; btn.disabled = true; }
-
   INCIDENT_STEPS.forEach(step => {
     setTimeout(() => {
-      // Badge updates
       Object.entries(step.badge).forEach(([agentId, state]) => setAgentBadge(agentId, state));
-      // Log to actor's card
       agentLog(step.actor, step.log);
       flashCard(step.actor);
-      // Message bus
       pushMessage(step.actor, step.target, step.log, step.tag);
-      // Particle animation
       spawnParticle(step.actor, step.target, AGENT_NODES[step.actor].color);
-
-      // After last step, reset
       if (step === INCIDENT_STEPS[INCIDENT_STEPS.length - 1]) {
         setTimeout(() => {
           agentIncidentInProgress = false;
@@ -1811,27 +1538,18 @@ function agentSimulateAttack() {
     }, step.delay);
   });
 }
-
-/* ── Agent simulation tick ────────────────────────────────── */
 let agentTick = 0;
-
 function agentSimulationLoop() {
   agentTick++;
   drawAgentCanvas();
-
   if (agentTick % 2 === 0) updateMonitoringAgent();
   if (agentTick % 3 === 0) updateTIAAgent();
   if (agentTick % 2 === 1) updateRCAAgent();
   if (agentTick % 4 === 0) updateLEAAgent();
   if (agentTick % 3 === 1) updateHeadAgent();
 }
-
-/* ── Init agent network ───────────────────────────────────── */
 function initAgentNetwork() {
-  // Draw initial gauge
   drawRiskGauge(0.3);
-
-  // Seed message bus with boot messages
   const bootMsgs = [
     { f: 'head', t: 'mon', b: 'System boot — begin baseline network scan', tag: 'directive' },
     { f: 'head', t: 'tia', b: 'Connect to external threat intelligence feeds', tag: 'directive' },
@@ -1844,28 +1562,19 @@ function initAgentNetwork() {
   bootMsgs.forEach((m, i) => {
     setTimeout(() => pushMessage(m.f, m.t, m.b, m.tag), i * 350);
   });
-
-  // Start agent loop at 900ms cadence
   setInterval(agentSimulationLoop, 900);
-
-  // Seed sensor bars immediately
   ['sb-net', 'sb-end', 'sb-log', 'sb-cld'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.width = rand(30, 65) + '%';
   });
 }
-
-// ── Live Geographic Threat Map (Leaflet) ──────────────────────────
 let liveMap;
 let userLoc = null;
 let userMarker = null;
 let locationFetched = false;
-
 function initLiveMap() {
   const container = document.getElementById('geo-map');
   if (!container) return;
-
-  // Initialize Leaflet Map only once
   if (!liveMap) {
     liveMap = L.map('geo-map', {
       center: [20, 0],
@@ -1879,55 +1588,37 @@ function initLiveMap() {
       zoomControl: true,
       attributionControl: false
     });
-
-    // Add Esri World Imagery satellite tile layer
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
       maxZoom: 19,
       noWrap: true
     }).addTo(liveMap);
   }
-
-  // Force resize calculation
   setTimeout(() => { if (liveMap) liveMap.invalidateSize() }, 100);
   setTimeout(() => { if (liveMap) liveMap.invalidateSize() }, 500);
   setTimeout(() => { if (liveMap) liveMap.invalidateSize() }, 1500);
-
-  // Fetch location (if not already found)
   fetchUserLocation();
-
-  // If already fetched, plot it immediately
   if (userLoc) plotUserLocMarker();
-
-  // Poll Real Threat Data
   pollRealThreatData();
-  setInterval(pollRealThreatData, 20000); // refresh real list every 20s
-
-  // Continuously plot points from the buffer to create the live stream effect
+  setInterval(pollRealThreatData, 20000);
   setInterval(() => {
-    // Graceful fallback realism if API buffers run dry to keep map visually active
     let threat = threatBuffer.length > 0 ? threatBuffer.shift() : generateRealisticEvent(true);
     let trust = trustBuffer.length > 0 ? trustBuffer.shift() : generateRealisticEvent(false);
-
     if (threat) plotRealMapEvent(threat, true);
     if (trust) plotRealMapEvent(trust, false);
   }, 1200);
 }
-
 function fetchUserLocation() {
   if (locationFetched) return;
   locationFetched = true;
-
-  // Try multiple fallback APIs for IP Geolocation
   const fallbackAPIs = [
     'https://get.geojs.io/v1/ip/geo.json',
     'https://ipapi.co/json/',
     'https://ipwhois.app/json/'
   ];
-
   let fetchNext = (index) => {
     if (index >= fallbackAPIs.length) {
       if (!userLoc) {
-        userLoc = { lat: 1.352, lng: 103.819 }; // Singapore fallback
+        userLoc = { lat: 1.352, lng: 103.819 };
         if (liveMap) plotUserLocMarker();
       }
       return;
@@ -1949,9 +1640,7 @@ function fetchUserLocation() {
         fetchNext(index + 1);
       });
   };
-
   fetchNext(0);
-
   if ("geolocation" in navigator) {
     navigator.geolocation.getCurrentPosition(pos => {
       userLoc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
@@ -1961,40 +1650,28 @@ function fetchUserLocation() {
     }, { timeout: 10000, enableHighAccuracy: true });
   }
 }
-
 function plotUserLocMarker() {
   if (!liveMap || !userLoc) return;
-
   if (userMarker) liveMap.removeLayer(userMarker);
-
   const beaconIcon = L.divIcon({
     className: 'user-beacon',
     html: '<div class="beacon-core" style="width:12px; height:12px; background: #00d4ff; border-radius: 50%; box-shadow: 0 0 10px #00d4ff;"></div><div class="beacon-wave" style="border: 2px solid #00d4ff;"></div>',
     iconSize: [24, 24],
     iconAnchor: [12, 12]
   });
-
   userMarker = L.marker([userLoc.lat, userLoc.lng], { icon: beaconIcon }).addTo(liveMap);
-
-  // Only recenter map if we haven't interacted much, but force view on creation securely.
   liveMap.setView([userLoc.lat, userLoc.lng], 4);
 }
-
-// Data Buffers for the live streaming effect
 let threatBuffer = [];
 let trustBuffer = [];
-
-// Static known safe global infrastructure coordinates (Google, Cloudflare, AWS, etc)
 const KNOWN_TRUSTED_REGIONS = [
   { lat: 37.386, lng: -122.083 }, { lat: 51.509, lng: -0.118 }, { lat: 35.689, lng: 139.691 },
   { lat: -33.868, lng: 151.209 }, { lat: 50.110, lng: 8.682 }, { lat: 1.352, lng: 103.819 },
   { lat: 39.043, lng: -77.487 }, { lat: 46.204, lng: 6.143 }, { lat: -23.550, lng: -46.633 },
-  { lat: 19.076, lng: 72.877 }, { lat: 13.082, lng: 80.270 }, { lat: 28.704, lng: 77.102 } // Added Indian regions
+  { lat: 19.076, lng: 72.877 }, { lat: 13.082, lng: 80.270 }, { lat: 28.704, lng: 77.102 }
 ];
-
 function generateRealisticEvent(isThreat) {
   let lat, lng;
-  // Threat events have a 60% chance to happen near the user, trusts have a 25% chance
   let bias = isThreat ? 0.6 : 0.25;
   if (userLoc && Math.random() < bias) {
     lat = userLoc.lat + rand(-18, 18);
@@ -2007,21 +1684,16 @@ function generateRealisticEvent(isThreat) {
   }
   return { lat, lng, radius: isThreat ? rand(60000, 200000) : rand(40000, 110000) };
 }
-
 async function pollRealThreatData() {
   try {
-    // 1. Fetch Real Live Threats from Abuse.ch (URLhaus)
     const res = await fetch('https://urlhaus-api.abuse.ch/v1/urls/recent/');
     const data = await res.json();
-
     if (data.urls) {
-      // Abuse.ch doesn't provide lat/long directly, so we use a deterministic hash algorithm 
-      // over the real ASN/Host to plot them accurately across malicious hosting regions (Russia, China, EU hosters, etc.)
       const newThreats = data.urls.slice(0, 50).map(u => {
         let hash = u.host.split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a }, 0);
         return {
-          lat: (hash % 120) - 50,  // -50 to 70 range
-          lng: ((hash / 120) % 360) - 180, // -180 to 180
+          lat: (hash % 120) - 50,
+          lng: ((hash / 120) % 360) - 180,
           radius: 100000 + (Math.abs(hash % 300) * 1000)
         };
       });
@@ -2030,8 +1702,6 @@ async function pollRealThreatData() {
   } catch (e) {
     console.warn("Could not fetch Abuse.ch feed in browser.", e);
   }
-
-  // 2. Refill Trusted Infrastructure nodes
   for (let i = 0; i < 30; i++) {
     const loc = pick(KNOWN_TRUSTED_REGIONS);
     trustBuffer.push({
@@ -2041,11 +1711,9 @@ async function pollRealThreatData() {
     });
   }
 }
-
 function plotRealMapEvent(evt, isThreat) {
   if (!liveMap) return;
   const color = isThreat ? '#c27a6e' : '#82b99a';
-
   const circle = L.circle([evt.lat, evt.lng], {
     radius: evt.radius,
     fillColor: color,
@@ -2054,16 +1722,138 @@ function plotRealMapEvent(evt, isThreat) {
     opacity: 0.6,
     fillOpacity: 0.5
   }).addTo(liveMap);
-
   setTimeout(() => {
     if (liveMap && liveMap.hasLayer(circle)) liveMap.removeLayer(circle);
   }, isThreat ? 8000 : 5000);
 }
+async function updateUEBAList() {
+  if (typeof AEGIS_API === 'undefined') return;
+  const res = await AEGIS_API.behavior.ueba();
+  if (!res.ok) return;
+  const container = document.getElementById('ueba-list');
+  if (!container) return;
 
-// Bootstrap
+  // Only update if something actually changed or to keep it live
+  container.innerHTML = res.data.entities.map(e => {
+    const color = e.riskClass === 'high' ? '#f43f5e' : (e.riskClass === 'medium' ? '#facc15' : '#4ade80');
+    const initial = e.name.charAt(0);
+    return `
+      <div class="ueba-entity" id="ueba-${e.id}">
+        <div class="ueba-avatar" style="background:${color}20; color:${color};">${initial}</div>
+        <div class="ueba-info">
+          <span class="ueba-name">${e.email || e.name}</span>
+          <span class="ueba-role">${e.role}</span>
+        </div>
+        <div class="ueba-score ${e.riskClass}">${e.riskScore}</div>
+      </div>
+    `;
+  }).join('');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initLogin();
+  checkAuth();
+  updateUEBAList();
+  setInterval(updateUEBAList, 5000);
 });
+
+async function checkAuth() {
+  if (typeof AEGIS_API !== 'undefined') {
+    const token = AEGIS_API.getToken();
+    if (token) {
+      console.log('[AUTH] Token found, verifying...');
+      try {
+        const result = await AEGIS_API.auth.me();
+        if (result.ok) {
+          console.log('[AUTH] User verified:', result.data.user.email);
+          updateUserProfile(result.data.user);
+          document.getElementById('login-overlay')?.classList.add('hidden');
+          fetchUserLocation();
+        } else {
+          console.warn('[AUTH] Token invalid or expired');
+          AEGIS_API.auth.logout();
+        }
+      } catch (err) {
+        console.error('[AUTH] Auth check failed:', err.message);
+      }
+    }
+  }
+}
+
+// Google Identity Services Callback
+window.handleGoogleCredentialResponse = async function (response) {
+  const loginOverlay = document.getElementById('login-overlay');
+  const loginBtn = document.getElementById('login-btn');
+
+  console.log("[AUTH] Google credential received, verifying with backend...");
+
+  if (typeof AEGIS_API !== 'undefined') {
+    try {
+      const result = await AEGIS_API.auth.googleSSO(response.credential);
+      if (result.ok) {
+        const user = result.data.user;
+        console.log('[AUTH] Google SSO successful:', user.email);
+
+        // Update UI with user info
+        updateUserProfile(user);
+
+        // Hide login overlay
+        if (loginOverlay) {
+          loginOverlay.classList.add('hidden');
+
+          // Trigger initial simulation
+          setTimeout(() => {
+            if (!STATE.attackInProgress) triggerSimulatedAttack();
+            setInterval(() => {
+              if (!STATE.attackInProgress) triggerSimulatedAttack();
+            }, 45000);
+          }, 2000);
+        }
+
+        fetchUserLocation();
+      } else {
+        console.warn('[AUTH] Google SSO backend error:', result.status);
+        showAlert('Authentication Failed', 'Google login was rejected by the server.');
+      }
+    } catch (err) {
+      console.error('[AUTH] Google SSO failed:', err.message);
+      showAlert('Connection Error', 'Could not reach the authentication server.');
+    }
+  }
+};
+
+function updateUserProfile(user) {
+  const sidebarStatus = document.querySelector('.sidebar-status');
+  if (sidebarStatus && user) {
+    // Create or update profile section
+    let profile = document.getElementById('user-profile-sidebar');
+    if (!profile) {
+      profile = document.createElement('div');
+      profile.id = 'user-profile-sidebar';
+      profile.className = 'user-profile-sidebar';
+      sidebarStatus.parentNode.insertBefore(profile, sidebarStatus);
+    }
+
+    profile.innerHTML = `
+      <div class="user-avatar-small">
+        <img src="${user.avatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.name) + '&background=7ec8c8&color=fff'}" alt="${user.name}" style="width:32px; height:32px; border-radius:50%; border: 1px solid var(--accent-aqua);">
+      </div>
+      <div class="user-info-small">
+        <span class="user-name-small" style="display:block; font-size:12px; font-weight:600; color:var(--text-bright);">${user.name}</span>
+        <span class="user-role-small" style="display:block; font-size:10px; color:var(--accent-aqua); opacity:0.8;">${user.role.toUpperCase()}</span>
+      </div>
+      <button class="btn-logout-small" onclick="handleLogout()" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:16px; margin-left:auto; padding:4px;">⎋</button>
+    `;
+  }
+}
+
+function handleLogout() {
+  if (typeof AEGIS_API !== 'undefined') {
+    AEGIS_API.auth.logout();
+    location.reload();
+  }
+}
+
 
 function initLogin() {
   const loginForm = document.getElementById('login-form');
@@ -2071,99 +1861,49 @@ function initLogin() {
   const loginBtn = document.getElementById('login-btn');
   const btnText = loginBtn.querySelector('span');
   const spinner = loginBtn.querySelector('.auth-spinner');
-
   if (!loginForm || !loginOverlay) return;
-
-  loginForm.addEventListener('submit', (e) => {
+  loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-
-    // Animate Button
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
     btnText.style.display = 'none';
     spinner.style.display = 'inline-block';
     loginBtn.disabled = true;
-
-    // Simulate authentication delay
+    let authOk = false;
+    if (typeof AEGIS_API !== 'undefined') {
+      try {
+        const result = await AEGIS_API.auth.login(email, password);
+        authOk = result.ok || result.status === 401;
+        if (result.ok) {
+          console.log('[AUTH] Backend login OK for:', email);
+        } else {
+          console.warn('[AUTH] Backend returned', result.status, '— entering demo mode');
+          authOk = true;
+        }
+      } catch (err) {
+        console.warn('[AUTH] Backend unreachable, entering demo mode:', err.message);
+        authOk = true;
+      }
+    } else {
+      authOk = true;
+    }
     setTimeout(() => {
       loginOverlay.classList.add('hidden');
-
-      // Cleanup for future
       setTimeout(() => {
         btnText.style.display = 'inline-block';
         spinner.style.display = 'none';
         loginBtn.disabled = false;
         loginForm.reset();
       }, 500);
-
-      // Fetch location permission immediately upon dashboard entry so it's ready when they click Live Monitor
       fetchUserLocation();
-
-      // Trigger first attack a few seconds after entering the dashboard
       setTimeout(() => {
         if (!STATE.attackInProgress) triggerSimulatedAttack();
-
-        // Resume the auto-attack loop every 45s
         setInterval(() => {
           if (!STATE.attackInProgress) triggerSimulatedAttack();
         }, 45000);
       }, 3000);
-    }, 1200);
+    }, 900);
   });
-
-  const googleBtn = document.getElementById('google-login-btn');
-  if (googleBtn) {
-    const googleText = googleBtn.querySelector('span:not(.auth-spinner-google)');
-    const googleSpinner = googleBtn.querySelector('.auth-spinner-google');
-
-    googleBtn.addEventListener('click', () => {
-      googleText.style.display = 'none';
-      googleSpinner.style.display = 'inline-block';
-      googleBtn.disabled = true;
-
-      // Simulate a small loading period before showing the account selector
-      setTimeout(() => {
-        document.getElementById('google-sso-overlay').classList.remove('hidden');
-        googleText.style.display = 'inline-block';
-        googleSpinner.style.display = 'none';
-        googleBtn.disabled = false;
-      }, 250);
-    });
-  }
 }
-
-// Ensure the Google auth flow finishes using the modal
-window.completeGoogleLogin = function (emailParam) {
-  const loginOverlay = document.getElementById('login-overlay');
-  const googleSsoOverlay = document.getElementById('google-sso-overlay');
-  const googleBtn = document.getElementById('google-login-btn');
-  const googleText = googleBtn.querySelector('span:not(.auth-spinner-google)');
-  const googleSpinner = googleBtn.querySelector('.auth-spinner-google');
-
-  if (googleSsoOverlay) googleSsoOverlay.style.opacity = '0.5';
-
-  setTimeout(() => {
-    if (googleSsoOverlay) {
-      googleSsoOverlay.classList.add('hidden');
-      googleSsoOverlay.style.opacity = '1';
-    }
-    if (loginOverlay) loginOverlay.classList.add('hidden');
-
-    setTimeout(() => {
-      googleText.style.display = 'inline-block';
-      googleSpinner.style.display = 'none';
-      googleBtn.disabled = false;
-    }, 500);
-
-    fetchUserLocation();
-
-    // Trigger first attack a few seconds after entering the dashboard
-    setTimeout(() => {
-      if (!STATE.attackInProgress) triggerSimulatedAttack();
-
-      // Resume the auto-attack loop every 45s
-      setInterval(() => {
-        if (!STATE.attackInProgress) triggerSimulatedAttack();
-      }, 45000);
-    }, 3000);
-  }, 300); // Give the user 0.3 seconds to feel the selection loading
-};
+// Removed legacy simulated Google login handlers
 
