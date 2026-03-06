@@ -1,0 +1,7 @@
+{
+    "name": "aegis-cyber-defense",
+    "version": "1.0.0",
+    "scripts": {
+        "dev:full": "cd backend && npm run dev:full"
+    }
+}

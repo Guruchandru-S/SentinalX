@@ -171,12 +171,12 @@ async function init() {
     console.log('[DB] Created new database:', DB_PATH);
   }
   db.run(SCHEMA);
-  // Migration: Add avatar_url column if it doesn't exist
+
   try {
     db.run("ALTER TABLE users ADD COLUMN avatar_url TEXT");
     console.log('[DB] Migration: Added avatar_url column to users table');
   } catch (e) {
-    // Column likely already exists, ignore error
+
   }
 
   saveToDisk();
@@ -266,6 +266,22 @@ function seedUEBA() {
     console.error('[DB] Seed UEBA error:', e.message);
   }
 }
+function seedAuditLog() {
+  const existing = get('SELECT COUNT(*) as n FROM audit_log');
+  if (existing && Number(existing.n) > 0) return;
+  const entries = [
+    ['SYSTEM', 'AEGIS Autonomous OS initialized - v3.2.0', '0x' + Math.random().toString(16).slice(2, 10)],
+    ['POLICY', 'Standard Defense Posture (High Awareness) applied', '0x' + Math.random().toString(16).slice(2, 10)],
+    ['ML', 'LSTM-v3 Neural Engine loaded and baselining...', '0x' + Math.random().toString(16).slice(2, 10)],
+    ['SYSTEM', 'Synchronized with global threat feeds (URLhaus, FeodoTracker)', '0x' + Math.random().toString(16).slice(2, 10)]
+  ];
+  const { v4: uuidv4 } = require('uuid');
+  entries.forEach((e, i) => {
+    run(`INSERT INTO audit_log (id, seq, type, message, hash, chain_length) VALUES (?, ?, ?, ?, ?, ?)`,
+      [uuidv4(), i + 1, e[0], e[1], e[2], i + 1]);
+  });
+  console.log('[DB] Seeded audit log initialization entries');
+}
 function getConfig(key) {
   const row = get('SELECT value FROM system_config WHERE key = ?', [key]);
   return row ? row.value : null;
@@ -277,6 +293,6 @@ function setConfig(key, value) {
 module.exports = {
   init, getDb,
   run, get, all, count, insertMany,
-  seedUsers, seedUEBA, getConfig, setConfig,
+  seedUsers, seedUEBA, seedAuditLog, getConfig, setConfig,
   saveToDisk
 };

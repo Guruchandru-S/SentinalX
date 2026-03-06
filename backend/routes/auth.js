@@ -9,7 +9,6 @@ const { OAuth2Client } = require('google-auth-library');
 const JWT_SECRET = process.env.JWT_SECRET || 'aegis-secret-key-change-in-production';
 const JWT_EXPIRES = '8h';
 
-// Your Real Google Client ID
 const GOOGLE_CLIENT_ID = '341392170764-aaqqfj4ro17vge5k3t00c8hfe67u7g38.apps.googleusercontent.com';
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
@@ -20,7 +19,6 @@ function signToken(user) {
     );
 }
 
-// Regular Email/Password Login
 router.post('/login', async (req, res) => {
     const { email, password } = req.body;
     if (!email) return res.status(400).json({ error: 'Email is required.' });
@@ -39,13 +37,12 @@ router.post('/login', async (req, res) => {
     });
 });
 
-// Real Google SSO Login
 router.post('/google', async (req, res) => {
     const { credential } = req.body;
     if (!credential) return res.status(400).json({ error: 'Google credential token is required.' });
 
     try {
-        // Formally verify the token with Google Servers
+
         const ticket = await googleClient.verifyIdToken({
             idToken: credential,
             audience: GOOGLE_CLIENT_ID
@@ -54,11 +51,10 @@ router.post('/google', async (req, res) => {
         const payload = ticket.getPayload();
         const { email, name, picture } = payload;
 
-        // Check if user already exists in our SQLite database
         let user = db.get('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', [email]);
 
         if (!user) {
-            // Auto-create user account since they proved their identity via Google
+
             const newId = `g-${uuidv4()}`;
             db.run(`INSERT INTO users (id, email, name, role, avatar_url) VALUES (?, ?, ?, ?, ?)`,
                 [newId, email, name, 'analyst', picture]);

@@ -1,1 +1,201 @@
-const express = require('express');const router = express.Router();const { v4: uuidv4 } = require('uuid');const db = require('../db/database');const DataEngine = require('../engine/dataEngine');router.get('/feed', (req, res) => {    const limit = Math.min(parseInt(req.query.limit) || 20, 200);    const page = Math.max(parseInt(req.query.page) || 1, 1);    const sev = req.query.severity;    const search = req.query.search;    const offset = (page - 1) * limit;    let where = 'WHERE 1=1';    const params = [];    if (sev) { where += ' AND severity = ?'; params.push(sev); }    if (search) { where += ' AND (name LIKE ? OR source_ip LIKE ? OR malware LIKE ?)'; params.push(`%${search}%`, `%${search}%`, `%${search}%`); }    const total = db.all(`SELECT COUNT(*) as n FROM threats ${where}`, params)[0]?.n || 0;    const rows = db.all(        `SELECT * FROM threats ${where} ORDER BY timestamp DESC LIMIT ? OFFSET ?`,        [...params, limit, offset]    );    const items = rows.map(r => ({        id: r.id,        name: r.name,        severity: r.severity,        source: r.source_ip || r.source_host || DataEngine.randomIP(),        action: r.action || 'Review',        category: r.category || 'de',        cvss: r.cvss || 0,        country: r.country || 'XX',        url: r.url,        malware: r.malware,        tags: r.tags ? r.tags.split(',') : [],        feedSource: r.feed_source,        timestamp: r.timestamp    }));    res.json({ items, total, page, limit, pages: Math.ceil(total / limit), realData: true });});router.get('/types', (req, res) => {    res.json({ types: DataEngine.THREAT_TYPES });});router.get('/live', (req, res) => {    const row = db.get('SELECT * FROM threats ORDER BY RANDOM() LIMIT 1');    if (row) {        return res.json({            id: row.id, name: row.name, severity: row.severity,            source: row.source_ip || row.source_host,            action: row.action, category: row.category,            cvss: row.cvss, country: row.country,            url: row.url, malware: row.malware,            feedSource: row.feed_source, timestamp: row.timestamp        });    }    res.json(DataEngine.generateThreatFeedItem());});router.get('/ip-table', (req, res) => {    const limit = Math.min(parseInt(req.query.limit) || 10, 50);    const rows = db.all(`    SELECT source_ip as ip, country, COUNT(*) as hits,           MAX(severity) as worst_severity,           GROUP_CONCAT(DISTINCT malware) as malware_families    FROM threats    WHERE source_ip IS NOT NULL AND source_ip != ''    GROUP BY source_ip    ORDER BY hits DESC    LIMIT ?  `, [limit]);    res.json({        entries: rows.map(r => ({            ip: r.ip,            country: r.country || 'XX',            hits: r.hits,            worstSeverity: r.worst_severity,            malwareFamilies: r.malware_families        })),        total: rows.length    });});router.get('/geo', (req, res) => {    const count = Math.min(parseInt(req.query.count) || 25, 100);    const GEO_COORDS = {        CN: [-50, 70, -180, 180], RU: [50, 65, 30, 120], KP: [38, 42, 124, 130],        IR: [28, 38, 44, 65], NG: [4, 14, 3, 15], BR: [-25, -5, -60, -35],        TR: [36, 42, 26, 45], UA: [44, 52, 22, 40], DE: [47, 55, 5, 15],        US: [25, 48, -125, -66], FR: [42, 51, -5, 8], BG: [41, 44, 22, 29],        RO: [43, 48, 20, 30], VN: [8, 24, 102, 110]    };    const rows = db.all(`    SELECT source_ip, country, severity, cvss, malware    FROM threats WHERE source_ip IS NOT NULL    ORDER BY RANDOM() LIMIT ?  `, [count]);    const events = rows.map(r => {        const coords = GEO_COORDS[r.country];        let lat, lng;        if (coords) {            lat = DataEngine.rand(coords[0], coords[1]);            lng = DataEngine.rand(coords[2], coords[3]);        } else {            lat = DataEngine.rand(-50, 70);            lng = DataEngine.rand(-180, 180);        }        return {            lat: parseFloat(lat.toFixed(3)),            lng: parseFloat(lng.toFixed(3)),            isThreat: true,            country: r.country || 'XX',            severity: r.severity,            cvss: r.cvss,            ip: r.source_ip,            malware: r.malware,            radius: DataEngine.randInt(60000, 200000)        };    });    const TRUSTED = [        { lat: 37.39, lng: -122.08 }, { lat: 51.51, lng: -0.12 },        { lat: -33.87, lng: 151.21 }, { lat: 1.35, lng: 103.82 }    ];    for (let i = 0; i < 6; i++) {        const tr = DataEngine.pick(TRUSTED);        events.push({            lat: parseFloat((tr.lat + DataEngine.rand(-2, 2)).toFixed(3)),            lng: parseFloat((tr.lng + DataEngine.rand(-2, 2)).toFixed(3)),            isThreat: false, radius: DataEngine.randInt(40000, 110000)        });    }    res.json({ events, count: events.length, realData: true, timestamp: DataEngine.nowISO() });});router.get('/c2-servers', (req, res) => {    const limit = Math.min(parseInt(req.query.limit) || 20, 100);    const rows = db.all(`    SELECT * FROM c2_servers ORDER BY last_seen DESC LIMIT ?  `, [limit]);    res.json({ servers: rows, total: rows.length, realData: true });});router.get('/iocs', (req, res) => {    const limit = Math.min(parseInt(req.query.limit) || 20, 200);    const page = Math.max(parseInt(req.query.page) || 1, 1);    const type = req.query.type;    const offset = (page - 1) * limit;    let where = 'WHERE 1=1';    const params = [];    if (type) { where += ' AND type = ?'; params.push(type); }    const total = db.all(`SELECT COUNT(*) as n FROM ioc_entries ${where}`, params)[0]?.n || 0;    const rows = db.all(`SELECT * FROM ioc_entries ${where} ORDER BY fetched_at DESC LIMIT ? OFFSET ?`, [...params, limit, offset]);    res.json({ iocs: rows, total, page, limit, realData: true });});router.get('/cves', (req, res) => {    const limit = Math.min(parseInt(req.query.limit) || 20, 200);    const page = Math.max(parseInt(req.query.page) || 1, 1);    const minCvss = parseFloat(req.query.minCvss || 0);    const offset = (page - 1) * limit;    let where = 'WHERE cvss_score >= ?';    const params = [minCvss];    const total = db.all(`SELECT COUNT(*) as n FROM cve_entries ${where}`, params)[0]?.n || 0;    const rows = db.all(`SELECT * FROM cve_entries ${where} ORDER BY cvss_score DESC, published DESC LIMIT ? OFFSET ?`, [...params, limit, offset]);    res.json({ cves: rows, total, page, limit, realData: true });});router.get('/stats', (req, res) => {    const sevCounts = db.all(`SELECT severity, COUNT(*) as n FROM threats GROUP BY severity`);    const countryCounts = db.all(`SELECT country, COUNT(*) as n FROM threats WHERE country IS NOT NULL GROUP BY country ORDER BY n DESC LIMIT 15`);    const malwareFamilies = db.all(`SELECT malware, COUNT(*) as n FROM threats WHERE malware IS NOT NULL GROUP BY malware ORDER BY n DESC LIMIT 15`);    const feedCounts = db.all(`SELECT feed_source, COUNT(*) as n FROM threats GROUP BY feed_source`);    const totalC2 = db.count('c2_servers');    const totalIOC = db.count('ioc_entries');    const totalCVE = db.count('cve_entries');    const lastFetch = db.getConfig('last_threat_intel_fetch');    res.json({        totalThreats: db.count('threats'),        totalC2Servers: totalC2,        totalIOCs: totalIOC,        totalCVEs: totalCVE,        bySeverity: Object.fromEntries(sevCounts.map(r => [r.severity, r.n])),        byCountry: countryCounts.map(r => ({ country: r.country, count: r.n })),        byMalwareFamily: malwareFamilies.map(r => ({ family: r.malware, count: r.n })),        byFeedSource: Object.fromEntries(feedCounts.map(r => [r.feed_source || 'unknown', r.n])),        lastFetch,        realData: true,        timestamp: DataEngine.nowISO()    });});router.post('/report', (req, res) => {    const { name, severity, source, description, malware } = req.body;    if (!name || !severity) return res.status(400).json({ error: 'name and severity are required.' });    const id = `manual-${uuidv4()}`;    db.run(`    INSERT INTO threats (id, name, severity, source_ip, category, action, cvss, malware, tags, feed_source, timestamp)    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))  `, [        id, name.trim(), severity, source || null,        'manual', 'Manual Review',        severity === 'critical' ? 9.5 : severity === 'high' ? 7.5 : severity === 'medium' ? 5.5 : 3.0,        malware || null, 'manual', 'Manual'    ]);    res.status(201).json({ success: true, threat: { id, name, severity, timestamp: new Date().toISOString() } });});router.get('/:id', (req, res) => {    const row = db.get('SELECT * FROM threats WHERE id = ?', [req.params.id]);    if (!row) return res.status(404).json({ error: 'Threat not found.' });    res.json(row);});module.exports = router;
+const express = require('express');
+const router = express.Router();
+const { v4: uuidv4 } = require('uuid');
+const db = require('../db/database');
+const DataEngine = require('../engine/dataEngine');
+router.get('/feed', (req, res) => {
+    const limit = Math.min(parseInt(req.query.limit) || 20, 200);
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    const sev = req.query.severity;
+    const search = req.query.search;
+    const offset = (page - 1) * limit;
+    let where = 'WHERE 1=1';
+    const params = [];
+    if (sev) { where += ' AND severity = ?'; params.push(sev); }
+    if (search) { where += ' AND (name LIKE ? OR source_ip LIKE ? OR malware LIKE ?)'; params.push(`%${search}%`, `%${search}%`, `%${search}%`); }
+    const total = db.all(`SELECT COUNT(*) as n FROM threats ${where}`, params)[0]?.n || 0;
+    const rows = db.all(
+        `SELECT * FROM threats ${where} ORDER BY timestamp DESC LIMIT ? OFFSET ?`,
+        [...params, limit, offset]
+    );
+    const items = rows.map(r => ({
+        id: r.id,
+        name: r.name,
+        severity: r.severity,
+        source: r.source_ip || r.source_host || DataEngine.randomIP(),
+        action: r.action || 'Review',
+        category: r.category || 'de',
+        cvss: r.cvss || 0,
+        country: r.country || 'XX',
+        url: r.url,
+        malware: r.malware,
+        tags: r.tags ? r.tags.split(',') : [],
+        feedSource: r.feed_source,
+        timestamp: r.timestamp
+    }));
+    res.json({ items, total, page, limit, pages: Math.ceil(total / limit), realData: true });
+});
+router.get('/types', (req, res) => {
+    res.json({ types: DataEngine.THREAT_TYPES });
+});
+router.get('/live', (req, res) => {
+    const row = db.get('SELECT * FROM threats ORDER BY RANDOM() LIMIT 1');
+    if (row) {
+        return res.json({
+            id: row.id, name: row.name, severity: row.severity,
+            source: row.source_ip || row.source_host,
+            action: row.action, category: row.category,
+            cvss: row.cvss, country: row.country,
+            url: row.url, malware: row.malware,
+            feedSource: row.feed_source, timestamp: row.timestamp
+        });
+    }
+    res.json(DataEngine.generateThreatFeedItem());
+});
+router.get('/ip-table', (req, res) => {
+    const limit = Math.min(parseInt(req.query.limit) || 10, 50);
+    const rows = db.all(`
+    SELECT source_ip as ip, country, COUNT(*) as hits,
+           MAX(severity) as worst_severity,
+           GROUP_CONCAT(DISTINCT malware) as malware_families
+    FROM threats
+    WHERE source_ip IS NOT NULL AND source_ip != ''
+    GROUP BY source_ip
+    ORDER BY hits DESC
+    LIMIT ?
+  `, [limit]);
+    res.json({
+        entries: rows.map(r => ({
+            ip: r.ip,
+            country: r.country || 'XX',
+            hits: r.hits,
+            worstSeverity: r.worst_severity,
+            malwareFamilies: r.malware_families
+        })),
+        total: rows.length
+    });
+});
+router.get('/geo', (req, res) => {
+    const count = Math.min(parseInt(req.query.count) || 25, 100);
+    const GEO_COORDS = {
+        CN: [-50, 70, -180, 180], RU: [50, 65, 30, 120], KP: [38, 42, 124, 130],
+        IR: [28, 38, 44, 65], NG: [4, 14, 3, 15], BR: [-25, -5, -60, -35],
+        TR: [36, 42, 26, 45], UA: [44, 52, 22, 40], DE: [47, 55, 5, 15],
+        US: [25, 48, -125, -66], FR: [42, 51, -5, 8], BG: [41, 44, 22, 29],
+        RO: [43, 48, 20, 30], VN: [8, 24, 102, 110]
+    };
+    const rows = db.all(`
+    SELECT source_ip, country, severity, cvss, malware
+    FROM threats WHERE source_ip IS NOT NULL
+    ORDER BY RANDOM() LIMIT ?
+  `, [count]);
+    const events = rows.map(r => {
+        const coords = GEO_COORDS[r.country];
+        let lat, lng;
+        if (coords) {
+            lat = DataEngine.rand(coords[0], coords[1]);
+            lng = DataEngine.rand(coords[2], coords[3]);
+        } else {
+            lat = DataEngine.rand(-50, 70);
+            lng = DataEngine.rand(-180, 180);
+        }
+        return {
+            lat: parseFloat(lat.toFixed(3)),
+            lng: parseFloat(lng.toFixed(3)),
+            isThreat: true,
+            country: r.country || 'XX',
+            severity: r.severity,
+            cvss: r.cvss,
+            ip: r.source_ip,
+            malware: r.malware,
+            radius: DataEngine.randInt(60000, 200000)
+        };
+    });
+    const TRUSTED = [
+        { lat: 37.39, lng: -122.08 }, { lat: 51.51, lng: -0.12 },
+        { lat: -33.87, lng: 151.21 }, { lat: 1.35, lng: 103.82 }
+    ];
+    for (let i = 0; i < 6; i++) {
+        const tr = DataEngine.pick(TRUSTED);
+        events.push({
+            lat: parseFloat((tr.lat + DataEngine.rand(-2, 2)).toFixed(3)),
+            lng: parseFloat((tr.lng + DataEngine.rand(-2, 2)).toFixed(3)),
+            isThreat: false, radius: DataEngine.randInt(40000, 110000)
+        });
+    }
+    res.json({ events, count: events.length, realData: true, timestamp: DataEngine.nowISO() });
+});
+router.get('/c2-servers', (req, res) => {
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+    const rows = db.all(`
+    SELECT * FROM c2_servers ORDER BY last_seen DESC LIMIT ?
+  `, [limit]);
+    res.json({ servers: rows, total: rows.length, realData: true });
+});
+router.get('/iocs', (req, res) => {
+    const limit = Math.min(parseInt(req.query.limit) || 20, 200);
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    const type = req.query.type;
+    const offset = (page - 1) * limit;
+    let where = 'WHERE 1=1';
+    const params = [];
+    if (type) { where += ' AND type = ?'; params.push(type); }
+    const total = db.all(`SELECT COUNT(*) as n FROM ioc_entries ${where}`, params)[0]?.n || 0;
+    const rows = db.all(`SELECT * FROM ioc_entries ${where} ORDER BY fetched_at DESC LIMIT ? OFFSET ?`, [...params, limit, offset]);
+    res.json({ iocs: rows, total, page, limit, realData: true });
+});
+router.get('/cves', (req, res) => {
+    const limit = Math.min(parseInt(req.query.limit) || 20, 200);
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    const minCvss = parseFloat(req.query.minCvss || 0);
+    const offset = (page - 1) * limit;
+    let where = 'WHERE cvss_score >= ?';
+    const params = [minCvss];
+    const total = db.all(`SELECT COUNT(*) as n FROM cve_entries ${where}`, params)[0]?.n || 0;
+    const rows = db.all(`SELECT * FROM cve_entries ${where} ORDER BY cvss_score DESC, published DESC LIMIT ? OFFSET ?`, [...params, limit, offset]);
+    res.json({ cves: rows, total, page, limit, realData: true });
+});
+router.get('/stats', (req, res) => {
+    const sevCounts = db.all(`SELECT severity, COUNT(*) as n FROM threats GROUP BY severity`);
+    const countryCounts = db.all(`SELECT country, COUNT(*) as n FROM threats WHERE country IS NOT NULL GROUP BY country ORDER BY n DESC LIMIT 15`);
+    const malwareFamilies = db.all(`SELECT malware, COUNT(*) as n FROM threats WHERE malware IS NOT NULL GROUP BY malware ORDER BY n DESC LIMIT 15`);
+    const feedCounts = db.all(`SELECT feed_source, COUNT(*) as n FROM threats GROUP BY feed_source`);
+    const totalC2 = db.count('c2_servers');
+    const totalIOC = db.count('ioc_entries');
+    const totalCVE = db.count('cve_entries');
+    const lastFetch = db.getConfig('last_threat_intel_fetch');
+    res.json({
+        totalThreats: db.count('threats'),
+        totalC2Servers: totalC2,
+        totalIOCs: totalIOC,
+        totalCVEs: totalCVE,
+        bySeverity: Object.fromEntries(sevCounts.map(r => [r.severity, r.n])),
+        byCountry: countryCounts.map(r => ({ country: r.country, count: r.n })),
+        byMalwareFamily: malwareFamilies.map(r => ({ family: r.malware, count: r.n })),
+        byFeedSource: Object.fromEntries(feedCounts.map(r => [r.feed_source || 'unknown', r.n])),
+        lastFetch,
+        realData: true,
+        timestamp: DataEngine.nowISO()
+    });
+});
+router.post('/report', (req, res) => {
+    const { name, severity, source, description, malware } = req.body;
+    if (!name || !severity) return res.status(400).json({ error: 'name and severity are required.' });
+    const id = `manual-${uuidv4()}`;
+    db.run(`
+    INSERT INTO threats (id, name, severity, source_ip, category, action, cvss, malware, tags, feed_source, timestamp)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+  `, [
+        id, name.trim(), severity, source || null,
+        'manual', 'Manual Review',
+        severity === 'critical' ? 9.5 : severity === 'high' ? 7.5 : severity === 'medium' ? 5.5 : 3.0,
+        malware || null, 'manual', 'Manual'
+    ]);
+    res.status(201).json({ success: true, threat: { id, name, severity, timestamp: new Date().toISOString() } });
+});
+router.get('/:id', (req, res) => {
+    const row = db.get('SELECT * FROM threats WHERE id = ?', [req.params.id]);
+    if (!row) return res.status(404).json({ error: 'Threat not found.' });
+    res.json(row);
+});
+module.exports = router;

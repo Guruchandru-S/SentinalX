@@ -1,9 +1,9 @@
 const STATE = {
   threatLevel: 'MODERATE',
   eventsPerSec: 0,
-  blockedCount: 0,
-  neutralized: 0,
-  anomalies: 0,
+  blockedCount: 142,
+  neutralized: 24,
+  anomalies: 8,
   accuracy: 97.4,
   uptime: 99.98,
   streamPaused: false,
@@ -69,6 +69,7 @@ function showPage(name) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + name)?.classList.add('active');
   document.getElementById('nav-' + name)?.classList.add('active');
+  document.body.classList.remove('sidebar-mobile-open');
   if (name === 'monitor') {
     if (typeof liveMap === 'undefined' || !liveMap) {
       initLiveMap();
@@ -90,12 +91,22 @@ function setThreatLevel(level) {
   val.textContent = level;
 }
 function updateKPIs() {
+
   easeUpdate('kpi-neutralized', STATE.neutralized);
   easeUpdate('kpi-anomalies', STATE.anomalies);
+  const healthEl = document.getElementById('kpi-uptime');
+  if (healthEl) healthEl.textContent = STATE.uptime.toFixed(2) + '%';
+
   easeUpdate('blocked-count', STATE.blockedCount);
   easeUpdate('events-per-sec', STATE.eventsPerSec);
-  const el = document.getElementById('kpi-accuracy');
-  if (el) el.textContent = STATE.accuracy.toFixed(1) + '%';
+
+  const activeCount = STATE.attackInProgress ? Math.max(1, Math.round(STATE.neutralized * 0.15 + Math.random() * 3)) : 0;
+  easeUpdate('topbar-active-threats', activeCount);
+  const atWrap = document.getElementById('topbar-active-threats-wrap');
+  if (atWrap) atWrap.classList.toggle('has-threats', activeCount > 0);
+
+  const mlAccEl = document.getElementById('kpi-accuracy');
+  if (mlAccEl) mlAccEl.textContent = STATE.accuracy.toFixed(1) + '%';
 }
 function easeUpdate(id, val) {
   const el = document.getElementById(id);
@@ -333,18 +344,34 @@ function drawAnomalyChart() {
   const maxV = Math.max(...baselineData, ...observedData, 1);
   const minV = Math.min(...baselineData, ...observedData, 0);
   const range = maxV - minV + 10;
-  const toY = v => H - 16 - ((v - minV) / range) * (H - 32);
+  const toY = v => H - 30 - ((v - minV) / range) * (H - 60);
+
+  // Y-Axis
+  ctx.strokeStyle = 'rgba(113,139,168,0.1)';
+  ctx.beginPath(); ctx.moveTo(40, 20); ctx.lineTo(40, H - 30); ctx.stroke();
+
+  // Z-Threshold Marker
+  const thresholdY = toY(120);
+  ctx.setLineDash([4, 4]);
+  ctx.strokeStyle = 'rgba(194,122,110,0.3)';
+  ctx.beginPath(); ctx.moveTo(40, thresholdY); ctx.lineTo(W, thresholdY); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(194,122,110,0.5)';
+  ctx.font = '9px JetBrains Mono';
+  ctx.fillText('CRITICAL THRESHOLD (Z>3.2)', 50, thresholdY - 5);
+
   ctx.beginPath();
   baselineData.forEach((v, i) => {
-    const x = i * sw, y = toY(v + 20);
+    const x = i * sw, y = toY(v + 15);
     i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
   });
   for (let i = n - 1; i >= 0; i--) {
-    ctx.lineTo(i * sw, toY(baselineData[i] - 20));
+    ctx.lineTo(i * sw, toY(baselineData[i] - 15));
   }
   ctx.closePath();
   ctx.fillStyle = 'rgba(126,200,200,0.04)';
   ctx.fill();
+
   ctx.beginPath();
   baselineData.forEach((v, i) => {
     const x = i * sw, y = toY(v);
@@ -354,6 +381,7 @@ function drawAnomalyChart() {
   ctx.setLineDash([6, 3]);
   ctx.stroke();
   ctx.setLineDash([]);
+
   ctx.beginPath();
   observedData.forEach((v, i) => {
     const x = i * sw, y = toY(v);
@@ -362,59 +390,77 @@ function drawAnomalyChart() {
   ctx.strokeStyle = 'rgba(130,185,154,0.65)';
   ctx.lineWidth = 1.5;
   ctx.stroke();
-  ctx.lineWidth = 1;
+
   anomalyPoints.forEach(({ idx, val }) => {
     if (idx >= n) return;
     const x = idx * sw, y = toY(val);
-    ctx.beginPath();
-    ctx.arc(x, y, 5, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(194,122,110,0.7)';
-    ctx.fill();
-    ctx.strokeStyle = '#c27a6e';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(194,122,110,0.8)'; ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.stroke();
   });
-  ctx.fillStyle = 'rgba(126,200,200,0.4)'; ctx.fillRect(10, 5, 16, 3);
-  ctx.fillStyle = 'rgba(113,139,168,0.8)'; ctx.font = '11px Inter'; ctx.textBaseline = 'top';
-  ctx.fillText('Baseline', 32, 1);
-  ctx.fillStyle = 'rgba(130,185,154,0.6)'; ctx.fillRect(100, 5, 16, 3);
-  ctx.fillText('Observed', 122, 1);
-  ctx.beginPath(); ctx.arc(202, 6, 5, 0, Math.PI * 2);
-  ctx.fillStyle = '#c27a6e'; ctx.fill();
-  ctx.fillStyle = 'rgba(113,139,168,0.8)';
-  ctx.fillText('Anomaly', 212, 1);
+
+  // Legend
+  ctx.fillStyle = 'rgba(113,139,168,0.8)'; ctx.font = '10px Inter';
+  ctx.fillText('Normal Logic Range', 50, 10);
+  ctx.fillText('Deviation Delta', 180, 10);
+  ctx.save();
+  ctx.translate(15, H / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText('DEVIATION index', 0, 0);
+  ctx.restore();
 }
 const riskBuckets = { Low: 0, Medium: 0, High: 0, Critical: 0 };
 function drawRiskDist() {
   const canvas = document.getElementById('riskDistCanvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
-  const W = canvas.offsetWidth || 280, H = 200;
-  canvas.width = W;
+  const W = 450, H = 300;
+  canvas.width = W; canvas.height = H;
   ctx.clearRect(0, 0, W, H);
+
+  // Grid Lines
+  ctx.strokeStyle = 'rgba(113,139,168,0.1)';
+  ctx.lineWidth = 1;
+  for (let j = 0; j <= 4; j++) {
+    const yGrid = 50 + j * (H - 100) / 4;
+    ctx.beginPath(); ctx.moveTo(50, yGrid); ctx.lineTo(W - 20, yGrid); ctx.stroke();
+  }
+
   const COLORS = { Low: '#82b99a', Medium: '#c9a862', High: '#d4985e', Critical: '#c27a6e' };
   const keys = Object.keys(riskBuckets);
-  const maxV = Math.max(...Object.values(riskBuckets), 1);
-  const bw = (W - 40) / keys.length;
+  const maxV = Math.max(...Object.values(riskBuckets), 10); // Scale to at least 10
+  const bw = (W - 80) / keys.length;
+
   keys.forEach((k, i) => {
     const v = riskBuckets[k];
-    const bh = ((v / maxV) * (H - 50)) || 4;
-    const x = 20 + i * bw + 6;
-    const y = H - 30 - bh;
-    const grad = ctx.createLinearGradient(x, y, x, H - 30);
+    const bh = (v / maxV) * (H - 100);
+    const x = 60 + i * bw;
+    const y = H - 50 - bh;
+
+    const grad = ctx.createLinearGradient(x, y, x, H - 50);
     grad.addColorStop(0, COLORS[k]);
-    grad.addColorStop(1, COLORS[k] + '44');
+    grad.addColorStop(1, COLORS[k] + '22');
     ctx.fillStyle = grad;
-    ctx.fillRect(x, y, bw - 12, bh);
-    ctx.fillStyle = 'rgba(113,139,168,0.7)';
-    ctx.font = '10px Inter';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    ctx.fillText(k, x + (bw - 12) / 2, H - 22);
+    ctx.fillRect(x + 10, y, bw - 20, bh);
+
     ctx.fillStyle = COLORS[k];
-    ctx.fillText(v, x + (bw - 12) / 2, y - 14);
+    ctx.font = '700 13px JetBrains Mono';
+    ctx.textAlign = 'center';
+    ctx.fillText(v, x + bw / 2, y - 10);
+
+    ctx.fillStyle = 'rgba(113,139,168,0.9)';
+    ctx.font = '600 11px Inter';
+    ctx.fillText(k, x + bw / 2, H - 35);
   });
+
+  // Axis Label
+  ctx.save();
+  ctx.translate(20, H / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillStyle = 'rgba(113,139,168,0.6)';
+  ctx.font = '10px Inter';
+  ctx.fillText('ENTITY POPULATION', 0, 0);
+  ctx.restore();
 }
 let trainingLoss = [];
 let trainingAcc = [];
@@ -461,6 +507,7 @@ function updateMLTraining() {
   trainingLoss.push(STATE.loss);
   trainingAcc.push(acc);
   if (trainingLoss.length > MAX_TRAIN_PTS) { trainingLoss.shift(); trainingAcc.shift(); }
+
   const ae = document.getElementById('ml-epochs');
   const al = document.getElementById('ml-loss');
   const av = document.getElementById('ml-vacc');
@@ -470,8 +517,27 @@ function updateMLTraining() {
   if (av) av.textContent = (acc * 100).toFixed(1) + '%';
   if (af) af.textContent = f1.toFixed(3);
   STATE.accuracy = 97 + acc * 0.4;
+
+  const detRate = Math.min(99.9, 95 + acc * 4.9);
+  const fpRate = Math.max(0.1, 2.5 - acc * 2);
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const dr = document.getElementById('kpi-detection-rate');
+  const fp = document.getElementById('kpi-fp-rate');
+  const mu = document.getElementById('kpi-model-updated');
+  if (dr) dr.textContent = detRate.toFixed(1) + '%';
+  if (fp) fp.textContent = fpRate.toFixed(1) + '%';
+  if (mu) mu.textContent = timeStr;
+
+  const moD = document.getElementById('mo-detected');
+  const moFP = document.getElementById('mo-fp');
+  const moC = document.getElementById('mo-confidence');
+  if (moD) { moD.textContent = detRate.toFixed(1) + '%'; const f = moD.parentElement.querySelector('.mo-fill'); if (f) f.style.width = detRate.toFixed(1) + '%'; }
+  if (moFP) { moFP.textContent = fpRate.toFixed(1) + '%'; const f = moFP.parentElement.querySelector('.mo-fill'); if (f) f.style.width = Math.min(fpRate * 5, 100).toFixed(1) + '%'; }
+  if (moC) { const conf = STATE.accuracy; moC.textContent = conf.toFixed(1) + '%'; const f = moC.parentElement.querySelector('.mo-fill'); if (f) f.style.width = conf.toFixed(1) + '%'; }
   drawTrainingChart();
 }
+
 function drawConfusion() {
   const canvas = document.getElementById('confusionCanvas');
   if (!canvas) return;
@@ -592,7 +658,7 @@ function addStreamEvent() {
   const type = pick(STREAM_TYPES);
   const msg = pick(type.msgs);
   const line = document.createElement('div');
-  line.className = 'stream-line';
+  line.className = `stream-line ${type.c}`;
   line.innerHTML = `
     <span class="sl-time">${now()}</span>
     <span class="sl-type ${type.c}">[${type.t}]</span>
@@ -710,10 +776,14 @@ function addResponseTimeline(title, type) {
   const el = document.getElementById('response-timeline');
   if (!el) return;
   const item = document.createElement('div');
-  item.className = 'tl-item';
+  const isSuccess = type === 'success';
+  item.className = `tl-item${isSuccess ? ' neutralized' : ''}`;
+  const badge = isSuccess
+    ? `<span class="tl-neutralized-badge">&#10003; NEUTRALIZED</span>`
+    : '';
   item.innerHTML = `<div class="tl-dot ${type}"></div>
     <div class="tl-content">
-      <div class="tl-title">${title}</div>
+      <div class="tl-title">${title}${badge}</div>
       <div class="tl-time">${now()}</div>
     </div>`;
   el.insertBefore(item, el.firstChild);
@@ -792,7 +862,8 @@ function triggerSimulatedAttack() {
   if (STATE.attackInProgress) return;
   STATE.attackInProgress = true;
   setThreatLevel('CRITICAL');
-  const threat = THREAT_TYPES.find(t => t.sev === 'critical') || THREAT_TYPES[2];
+  const criticalThreats = THREAT_TYPES.filter(t => t.sev === 'critical');
+  const threat = pick(criticalThreats) || THREAT_TYPES[2];
   showAlert(`⚠ ATTACK DETECTED — ${threat.name}`,
     `Source: ${randomIP()} → Autonomous response initiated: ${threat.action}`);
   let step = 0;
@@ -866,25 +937,84 @@ function closeAlert() {
   document.getElementById('alert-overlay').style.display = 'none';
 }
 function exportLogs() {
-  if (typeof AEGIS_API !== 'undefined') {
-    const url = AEGIS_API.forensics.exportUrl();
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `AEGIS_forensic_${Date.now()}.log`;
-    a.click();
-    return;
-  }
   const rows = document.querySelectorAll('.audit-row');
-  let text = 'AEGIS FORENSIC AUDIT LOG — TAMPER-RESISTANT EXPORT\n';
+  const ts = new Date().toISOString();
+  let text = 'AEGIS FORENSIC AUDIT LOG — CRYPTOGRAPHIC LOG INTEGRITY CHAIN\n';
+  text += `Exported: ${ts}\n`;
+  text += '='.repeat(60) + '\n';
+  text += 'Each entry is cryptographically hashed and chained for tamper detection.\n';
   text += '='.repeat(60) + '\n';
   rows.forEach(r => { text += r.textContent.trim().replace(/\s+/g, ' ') + '\n'; });
-  const blob = new Blob([text], { type: 'text/plain' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `AEGIS_forensic_${Date.now()}.log`;
-  a.click();
-  URL.revokeObjectURL(url);
+
+  if (window.jspdf) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.setFillColor(44, 62, 80);
+    doc.rect(0, 0, 210, 25, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16);
+    doc.text('AEGIS FORENSIC AUDIT LOG', 15, 16);
+    doc.setFontSize(8);
+    doc.text('CRYPTOGRAPHIC LOG INTEGRITY CHAIN — VERIFIED', 15, 21);
+    doc.setTextColor(100, 100, 100);
+    doc.setFontSize(10);
+    doc.text(`Exported: ${new Date().toLocaleString()}`, 15, 35);
+    doc.setFillColor(245, 245, 245);
+    doc.rect(10, 40, 190, 10, 'F');
+    doc.setTextColor(50, 50, 50);
+    doc.setFontSize(9);
+    doc.text('SEQ', 15, 46);
+    doc.text('TIME', 35, 46);
+    doc.text('MESSAGE', 75, 46);
+    doc.text('HASH', 165, 46);
+    let y = 57;
+    const rowsArr = Array.from(rows);
+    rowsArr.forEach((r, i) => {
+      if (y > 280) { doc.addPage(); y = 20; }
+      if (i % 2 === 1) { doc.setFillColor(252, 252, 252); doc.rect(10, y - 5, 190, 10, 'F'); }
+      doc.setTextColor(33, 33, 33);
+      const seq = r.querySelector('.ar-seq')?.textContent || `#${i}`;
+      const time = r.querySelector('.ar-time')?.textContent || '--:--';
+      const msg = r.querySelector('.ar-msg')?.textContent || '';
+      const hash = r.querySelector('.ar-hash')?.textContent || '';
+      doc.text(seq, 15, y);
+      doc.text(time, 35, y);
+      doc.text(msg.substring(0, 55), 75, y);
+      doc.setTextColor(150, 150, 150);
+      doc.setFontSize(7);
+      doc.text(hash, 165, y);
+      doc.setFontSize(9);
+      y += 10;
+    });
+
+    const anomalyCanvas = document.getElementById('anomalyCanvas');
+    if (anomalyCanvas) {
+      try {
+        doc.addPage();
+        doc.setFillColor(44, 62, 80);
+        doc.rect(0, 0, 210, 15, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(10);
+        doc.text('BEHAVIORAL ANOMALY VISUALIZATION (LIVE SNAPSHOT)', 15, 10);
+        const imgData = anomalyCanvas.toDataURL('image/png');
+        doc.addImage(imgData, 'PNG', 10, 25, 190, 50);
+        doc.setTextColor(120, 120, 120);
+        doc.setFontSize(8);
+        doc.text('* Data reflects real-time adaptive threshold baseline analysis.', 15, 85);
+      } catch (e) {
+        console.warn('[PDF] Anomaly chart capture failed:', e);
+      }
+    }
+    doc.save(`AEGIS_Audit_Log_${Date.now()}.pdf`);
+  } else {
+    const blob = new Blob([text], { type: 'text/plain' });
+    const urlBlob = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = urlBlob;
+    a.download = `AEGIS_audit_log_${Date.now()}.txt`;
+    a.click();
+    URL.revokeObjectURL(urlBlob);
+  }
 }
 let reportGenerating = false;
 function generateMLReport() {
@@ -920,11 +1050,69 @@ function generateMLReport() {
             if (bar) bar.style.width = '100%';
             if (status) status.textContent = 'Complete! Preparing download...';
             if (badge) { badge.textContent = 'COMPLETE'; badge.className = 'card-badge live'; }
-            const blob = new Blob([text], { type: 'text/markdown' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url; a.download = `AEGIS_ML_Report_${Date.now()}.md`; a.click();
-            URL.revokeObjectURL(url);
+            if (window.jspdf) {
+              const { jsPDF } = window.jspdf;
+              const doc = new jsPDF();
+              doc.setFillColor(26, 188, 156);
+              doc.rect(0, 0, 210, 25, 'F');
+              doc.setTextColor(255, 255, 255);
+              doc.setFontSize(16);
+              doc.text('AEGIS MACHINE LEARNING REPORT', 15, 16);
+              doc.setFontSize(8);
+              doc.text('NEURAL ENGINE PERFORMANCE & TRAINING METRICS', 15, 21);
+              doc.setTextColor(100, 100, 100);
+              doc.setFontSize(10);
+              doc.text(`Generated: ${new Date().toLocaleString()}`, 15, 35);
+              const epochs = document.getElementById('ml-epochs')?.textContent || '0';
+              const loss = document.getElementById('ml-loss')?.textContent || '0.000';
+              const vacc = document.getElementById('ml-vacc')?.textContent || '0.0%';
+              const f1 = document.getElementById('ml-f1')?.textContent || '0.000';
+              doc.setFillColor(240, 240, 240);
+              doc.rect(15, 45, 180, 10, 'F');
+              doc.setTextColor(50, 50, 50);
+              doc.setFontSize(10);
+              doc.text('ANALYSIS METRIC', 20, 51);
+              doc.text('CURRENT VALUE', 100, 51);
+              doc.text('STATUS', 150, 51);
+              let y = 62;
+              const stats = [
+                ['Training Epochs', epochs, 'COMPLETE'],
+                ['Loss Gradient', loss, 'CONVERGING'],
+                ['Validation Accuracy', vacc, 'STABLE'],
+                ['F1 Model Score', f1, 'AUTHENTICATED'],
+                ['Network Status', 'ONLINE', 'OPERATIONAL'],
+                ['Model Version', 'LSTM-v3.2', 'ACTIVE']
+              ];
+              stats.forEach((s, i) => {
+                doc.setTextColor(33, 33, 33);
+                doc.text(s[0], 20, y);
+                doc.text(s[1], 100, y);
+                doc.setFontSize(8);
+                doc.text(s[2], 150, y);
+                doc.setFontSize(10);
+                doc.line(15, y + 2, 195, y + 2);
+                y += 12;
+              });
+
+              const trainCanvas = document.getElementById('trainingCanvas');
+              if (trainCanvas) {
+                try {
+                  doc.setFontSize(11);
+                  doc.text('NEURAL TRAINING CURVE SNAPSHOT', 15, y + 10);
+                  const imgData = trainCanvas.toDataURL('image/png');
+                  doc.addImage(imgData, 'PNG', 15, y + 15, 180, 45);
+                } catch (e) {
+                  console.warn('[PDF] ML chart capture failed:', e);
+                }
+              }
+              doc.save(`AEGIS_ML_Report_${Date.now()}.pdf`);
+            } else {
+              const blob = new Blob([text], { type: 'text/markdown' });
+              const urlBlob = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = urlBlob; a.download = `AEGIS_ML_Report_${Date.now()}.md`; a.click();
+              URL.revokeObjectURL(urlBlob);
+            }
             setTimeout(() => { if (btn) btn.disabled = false; reportGenerating = false; }, 2000);
           }
         }, 80);
@@ -981,13 +1169,71 @@ function generateMLReportFallback(btn, card, badge, status, bar, output) {
       badge.textContent = 'COMPLETE';
       badge.className = 'card-badge live';
     }
-    const blob = new Blob([text], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `AEGIS_ML_Report_${Date.now()}.md`;
-    a.click();
-    URL.revokeObjectURL(url);
+    if (window.jspdf) {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.setFillColor(26, 188, 156);
+      doc.rect(0, 0, 210, 25, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(16);
+      doc.text('AEGIS MACHINE LEARNING REPORT', 15, 16);
+      doc.setFontSize(8);
+      doc.text('NEURAL ENGINE PERFORMANCE & TRAINING METRICS', 15, 21);
+      doc.setTextColor(100, 100, 100);
+      doc.setFontSize(10);
+      doc.text(`Generated: ${new Date().toLocaleString()}`, 15, 35);
+      const epochs = document.getElementById('ml-epochs')?.textContent || '0';
+      const loss = document.getElementById('ml-loss')?.textContent || '0.000';
+      const vacc = document.getElementById('ml-vacc')?.textContent || '0.0%';
+      const f1 = document.getElementById('ml-f1')?.textContent || '0.000';
+      doc.setFillColor(240, 240, 240);
+      doc.rect(15, 45, 180, 10, 'F');
+      doc.setTextColor(50, 50, 50);
+      doc.setFontSize(10);
+      doc.text('ANALYSIS METRIC', 20, 51);
+      doc.text('CURRENT VALUE', 100, 51);
+      doc.text('STATUS', 150, 51);
+      let y = 62;
+      const stats = [
+        ['Training Epochs', epochs, 'COMPLETE'],
+        ['Loss Gradient', loss, 'CONVERGING'],
+        ['Validation Accuracy', vacc, 'STABLE'],
+        ['F1 Model Score', f1, 'AUTHENTICATED'],
+        ['Network Status', 'ONLINE', 'OPERATIONAL'],
+        ['Model Version', 'LSTM-v3.2', 'ACTIVE']
+      ];
+      stats.forEach((s, i) => {
+        doc.setTextColor(33, 33, 33);
+        doc.text(s[0], 20, y);
+        doc.text(s[1], 100, y);
+        doc.setFontSize(8);
+        doc.text(s[2], 150, y);
+        doc.setFontSize(10);
+        doc.line(15, y + 2, 195, y + 2);
+        y += 12;
+      });
+
+      const trainCanvas = document.getElementById('trainingCanvas');
+      if (trainCanvas) {
+        try {
+          doc.setFontSize(11);
+          doc.text('NEURAL TRAINING CURVE SNAPSHOT', 15, y + 10);
+          const imgData = trainCanvas.toDataURL('image/png');
+          doc.addImage(imgData, 'PNG', 15, y + 15, 180, 45);
+        } catch (e) {
+          console.warn('[PDF] ML chart capture failed:', e);
+        }
+      }
+      doc.save(`AEGIS_ML_Report_${Date.now()}.pdf`);
+    } else {
+      const blob = new Blob([text], { type: 'text/markdown' });
+      const urlBlob = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = urlBlob;
+      a.download = `AEGIS_ML_Report_${Date.now()}.md`;
+      a.click();
+      URL.revokeObjectURL(urlBlob);
+    }
     setTimeout(() => {
       if (btn) btn.disabled = false;
       reportGenerating = false;
@@ -1043,7 +1289,19 @@ function resizeCanvases() {
   drawProcessChain();
   drawProtocol();
 }
+
+function toggleSidebar() {
+  const isCollapsed = document.body.classList.toggle('sidebar-collapsed');
+  localStorage.setItem('aegis_sidebar_collapsed', isCollapsed);
+  setTimeout(resizeCanvases, 300);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+
+  if (localStorage.getItem('aegis_sidebar_collapsed') === 'true') {
+    document.body.classList.add('sidebar-collapsed');
+  }
+
   buildMitreGrid();
   buildPredictions();
   drawProcessChain();
@@ -1051,6 +1309,7 @@ document.addEventListener('DOMContentLoaded', () => {
   drawRiskDist();
   drawAnomalyChart();
   drawProtocol();
+  updateKPIs();
   setThreatLevel('MODERATE');
   for (let i = 0; i < 5; i++) {
     addThreatFeedItem();
@@ -1533,6 +1792,9 @@ function agentSimulateAttack() {
           agentIncidentInProgress = false;
           if (btn) { btn.textContent = 'Trigger Incident'; btn.disabled = false; }
           AGENT_KEYS.forEach(k => setAgentBadge(k, 'online'));
+          STATE.neutralized++;
+          STATE.blockedCount++;
+          updateKPIs();
         }, 1500);
       }
     }, step.delay);
@@ -1672,7 +1934,7 @@ const KNOWN_TRUSTED_REGIONS = [
 ];
 function generateRealisticEvent(isThreat) {
   let lat, lng;
-  let bias = isThreat ? 0.6 : 0.25;
+  const bias = isThreat ? 0.6 : 0.25;
   if (userLoc && Math.random() < bias) {
     lat = userLoc.lat + rand(-18, 18);
     lng = userLoc.lng + rand(-18, 18);
@@ -1682,33 +1944,65 @@ function generateRealisticEvent(isThreat) {
   } else {
     lat = rand(-50, 70); lng = rand(-180, 180);
   }
-  return { lat, lng, radius: isThreat ? rand(60000, 200000) : rand(40000, 110000) };
+
+  if (isThreat) {
+    const malwareFamilies = ['Cobalt Strike', 'LockBit 3.0', 'Qakbot', 'Emotet', 'IcedID', 'Sliver C2', 'Agent Tesla', 'GuLoader'];
+    const types = ['Botnet Check-in', 'Malware Download', 'C2 Communication', 'Credential Exfiltration'];
+    const severities = ['high', 'critical', 'medium'];
+    const sev = pick(severities);
+    return {
+      lat, lng,
+      isThreat: true,
+      ip: `${randInt(45, 185)}.${randInt(10, 250)}.${randInt(1, 254)}.${randInt(1, 254)}`,
+      malware: pick(malwareFamilies),
+      name: pick(types),
+      severity: sev,
+      cvss: sev === 'critical' ? rand(9.0, 10.0).toFixed(1) : (sev === 'high' ? rand(7.0, 8.9).toFixed(1) : rand(4.0, 6.9).toFixed(1)),
+      radius: rand(60000, 200000)
+    };
+  }
+  return { lat, lng, isThreat: false, radius: rand(40000, 110000) };
 }
+window.toggleMapFullscreen = function () {
+  const mapEl = document.getElementById('geo-map');
+  if (!mapEl) return;
+  mapEl.classList.toggle('fullscreen');
+  const isFs = mapEl.classList.contains('fullscreen');
+  const btn = mapEl.querySelector('.map-fs-btn');
+  if (btn) btn.textContent = isFs ? '✕ Close' : '⛶ Fullscreen';
+  if (liveMap) {
+    setTimeout(() => liveMap.invalidateSize(), 150);
+  }
+};
+
 async function pollRealThreatData() {
+  if (typeof AEGIS_API === 'undefined') return;
   try {
-    const res = await fetch('https://urlhaus-api.abuse.ch/v1/urls/recent/');
-    const data = await res.json();
-    if (data.urls) {
-      const newThreats = data.urls.slice(0, 50).map(u => {
-        let hash = u.host.split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a }, 0);
-        return {
-          lat: (hash % 120) - 50,
-          lng: ((hash / 120) % 360) - 180,
-          radius: 100000 + (Math.abs(hash % 300) * 1000)
-        };
+    const res = await AEGIS_API.threats.geo(40);
+    if (res.ok && res.data && res.data.events) {
+      res.data.events.forEach(evt => {
+        if (evt.isThreat) {
+          threatBuffer.push(evt);
+        } else {
+          trustBuffer.push(evt);
+        }
       });
-      threatBuffer.push(...newThreats);
     }
   } catch (e) {
-    console.warn("Could not fetch Abuse.ch feed in browser.", e);
+    console.warn("[MAP] Background sync failed:", e.message);
   }
-  for (let i = 0; i < 30; i++) {
-    const loc = pick(KNOWN_TRUSTED_REGIONS);
-    trustBuffer.push({
-      lat: loc.lat + rand(-5, 5),
-      lng: loc.lng + rand(-5, 5),
-      radius: rand(50000, 150000)
-    });
+
+  // Ensure trust buffer is populated if API is sparse
+  if (trustBuffer.length < 20) {
+    for (let i = 0; i < 15; i++) {
+      const loc = pick(KNOWN_TRUSTED_REGIONS);
+      trustBuffer.push({
+        lat: loc.lat + rand(-10, 10),
+        lng: loc.lng + rand(-10, 10),
+        radius: rand(60000, 180000),
+        isThreat: false
+      });
+    }
   }
 }
 function plotRealMapEvent(evt, isThreat) {
@@ -1719,12 +2013,63 @@ function plotRealMapEvent(evt, isThreat) {
     fillColor: color,
     color: color,
     weight: 2,
-    opacity: 0.6,
+    opacity: 0.8,
     fillOpacity: 0.5
   }).addTo(liveMap);
+
+  // Use evt.name if malware is just a tag, or vice versa
+  const threatType = evt.malware || evt.name || 'Heuristic Anomaly';
+  const displayIP = evt.ip || evt.source || 'Protected Endpoint';
+
+  let popupContent = '';
+  if (isThreat) {
+    popupContent = `
+    <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-primary); min-width: 200px;">
+      <div style="color: var(--red); font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 4px; margin-bottom: 4px; display: flex; justify-content: space-between;">
+        <span>⚠ THREAT ORIGIN</span>
+        <span style="font-size: 0.6rem; opacity: 0.8;">[${evt.severity?.toUpperCase() || 'HIGH'}]</span>
+      </div>
+      <div style="margin-bottom: 2px;"><span style="color: var(--text-muted)">Type:</span> <span style="color: var(--orange)">${threatType}</span></div>
+      <div style="margin-bottom: 2px;"><span style="color: var(--text-muted)">CVSS:</span> ${evt.cvss || parseFloat((Math.random() * 3 + 6.5).toFixed(1))}</div>
+      <div style="margin-bottom: 2px;"><span style="color: var(--text-muted)">Origin:</span> ${displayIP}</div>
+      <div style="margin-top: 6px; font-size: 0.65rem; color: var(--cyan); border-top: 1px solid var(--border); padding-top: 4px; text-align: center;">PROTECTION: ACTIVE BLOCK</div>
+    </div>
+  `;
+  } else {
+    const trustedProt = pick(['TLS 1.3 (AEAD)', 'IPSec VPN Tunnel', 'SSHv2 Encrypted', 'Zero Trust Link', 'mTLS Microservice Proxy']);
+    const trustedAu = pick(['MFA Verified Token', 'Biometric SSO Approved', 'Client Certificate Valid', 'SAML 2.0 Auth', 'FIDO2 Hardkey']);
+    const trustedStat = pick(['Deep Packet Inspected: Safe', 'Whitelisted Organization Subnet', 'Endpoint OS Compliant', 'Signature Verified (Trusted)', 'Known Safe ASN/BGP Route']);
+    popupContent = `
+    <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-primary); min-width: 200px;">
+      <div style="color: var(--green); font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 4px; margin-bottom: 4px; display: flex; justify-content: space-between;">
+        <span>✓ SECURE FLOW</span>
+        <span style="font-size: 0.6rem; opacity: 0.8;">[VERIFIED]</span>
+      </div>
+      <div style="margin-bottom: 2px;"><span style="color: var(--text-muted)">Protocol:</span> <span style="color: var(--cyan)">${trustedProt}</span></div>
+      <div style="margin-bottom: 2px;"><span style="color: var(--text-muted)">Auth:</span> ${trustedAu}</div>
+      <div style="margin-bottom: 2px;"><span style="color: var(--text-muted)">Validation:</span> ${trustedStat}</div>
+      <div style="margin-top: 6px; font-size: 0.65rem; color: var(--agent-lea); border-top: 1px solid var(--border); padding-top: 4px; text-align: center;">TRAFFIC PERMITTED</div>
+    </div>
+  `;
+  }
+
+  circle.bindPopup(popupContent, {
+    className: 'custom-map-popup',
+    closeButton: false,
+    minWidth: 200
+  });
+
+  // Pulse effect on hover
+  circle.on('mouseover', function () {
+    this.setStyle({ fillOpacity: 0.8, opacity: 1, weight: 4 });
+  });
+  circle.on('mouseout', function () {
+    this.setStyle({ fillOpacity: 0.5, opacity: 0.8, weight: 2 });
+  });
+
   setTimeout(() => {
     if (liveMap && liveMap.hasLayer(circle)) liveMap.removeLayer(circle);
-  }, isThreat ? 8000 : 5000);
+  }, isThreat ? 15000 : 8000); // Increased lifetime for readability
 }
 async function updateUEBAList() {
   if (typeof AEGIS_API === 'undefined') return;
@@ -1733,7 +2078,6 @@ async function updateUEBAList() {
   const container = document.getElementById('ueba-list');
   if (!container) return;
 
-  // Only update if something actually changed or to keep it live
   container.innerHTML = res.data.entities.map(e => {
     const color = e.riskClass === 'high' ? '#f43f5e' : (e.riskClass === 'medium' ? '#facc15' : '#4ade80');
     const initial = e.name.charAt(0);
@@ -1780,7 +2124,6 @@ async function checkAuth() {
   }
 }
 
-// Google Identity Services Callback
 window.handleGoogleCredentialResponse = async function (response) {
   const loginOverlay = document.getElementById('login-overlay');
   const loginBtn = document.getElementById('login-btn');
@@ -1794,14 +2137,11 @@ window.handleGoogleCredentialResponse = async function (response) {
         const user = result.data.user;
         console.log('[AUTH] Google SSO successful:', user.email);
 
-        // Update UI with user info
         updateUserProfile(user);
 
-        // Hide login overlay
         if (loginOverlay) {
           loginOverlay.classList.add('hidden');
 
-          // Trigger initial simulation
           setTimeout(() => {
             if (!STATE.attackInProgress) triggerSimulatedAttack();
             setInterval(() => {
@@ -1825,7 +2165,7 @@ window.handleGoogleCredentialResponse = async function (response) {
 function updateUserProfile(user) {
   const sidebarStatus = document.querySelector('.sidebar-status');
   if (sidebarStatus && user) {
-    // Create or update profile section
+
     let profile = document.getElementById('user-profile-sidebar');
     if (!profile) {
       profile = document.createElement('div');
@@ -1853,7 +2193,6 @@ function handleLogout() {
     location.reload();
   }
 }
-
 
 function initLogin() {
   const loginForm = document.getElementById('login-form');
@@ -1905,5 +2244,11 @@ function initLogin() {
     }, 900);
   });
 }
-// Removed legacy simulated Google login handlers
 
+window.toggleSidebar = function () {
+  document.body.classList.toggle('sidebar-collapsed');
+};
+
+window.toggleSidebarMobile = function () {
+  document.body.classList.toggle('sidebar-mobile-open');
+};

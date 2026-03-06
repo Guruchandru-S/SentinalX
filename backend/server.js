@@ -180,15 +180,15 @@ app.use((err, req, res, next) => {
 });
 async function bootstrap() {
     await db.init();
-    db.seedUsers(); db.seedUEBA();
+    db.seedUsers(); db.seedUEBA(); db.seedAuditLog();
     await new Promise((resolve) => server.listen(PORT, resolve));
     console.log('\n╔════════════════════════════════════════════╗');
     console.log('║     AEGIS Autonomous Cyber Defense OS      ║');
     console.log('║       Backend API Server v3.2 + DB         ║');
     console.log('╚════════════════════════════════════════════╝');
-    console.log(`\n  HTTP API   →  http://localhost:${PORT}/api/`);
+    console.log(`  HTTP API   →  http://localhost:${PORT}`);
     console.log(`  WebSocket  →  ws://localhost:${PORT}/ws`);
-    console.log(`  Frontend   →  http://localhost:${PORT}/`);
+    console.log(`  Frontend   →  http://localhost:3000`);
     console.log(`  Database   →  aegis.db (SQLite)\n`);
     console.log('  [INTEL] Starting real threat intelligence fetch...');
     fetchAllRealData()

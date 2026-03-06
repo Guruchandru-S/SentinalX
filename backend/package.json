@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "dev:full": "npx -y concurrently \"npm run dev\" \"npx -y live-server ../ --host=localhost --port=3000\""
   },
   "dependencies": {
     "aegis-backend": "file:",
@@ -15,6 +16,7 @@
     "express-rate-limit": "^7.1.5",
     "google-auth-library": "^10.6.1",
     "jsonwebtoken": "^9.0.2",
+    "pdfkit": "^0.17.2",
     "sql.js": "^1.14.1",
     "uuid": "^9.0.0",
     "ws": "^8.14.2"

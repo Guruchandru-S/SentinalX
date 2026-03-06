@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="style.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 
@@ -63,7 +64,6 @@
                 <span>OR</span>
             </div>
 
-            <!-- Authentic Google Sign-In Button -->
             <div id="g_id_onload"
                 data-client_id="341392170764-aaqqfj4ro17vge5k3t00c8hfe67u7g38.apps.googleusercontent.com"
                 data-context="signin" data-ux_mode="popup" data-callback="handleGoogleCredentialResponse"
@@ -79,7 +79,6 @@
             </div>
         </div>
     </div>
-
 
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-logo">
@@ -104,6 +103,11 @@
                 <span class="logo-name">AEGIS</span>
                 <span class="logo-sub">Cyber Defense OS</span>
             </div>
+            <button class="btn-sidebar-toggle" id="btn-sidebar-toggle" onclick="toggleSidebar()" title="Toggle Sidebar">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+            </button>
         </div>
 
         <nav class="sidebar-nav">
@@ -141,12 +145,18 @@
         </div>
     </aside>
 
-
     <main class="main-content">
-
 
         <header class="topbar">
             <div class="topbar-left">
+                <button class="menu-toggle" id="menu-toggle" onclick="toggleSidebarMobile()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
                 <div class="threat-badge" id="global-threat-badge">
                     <span class="threat-label">THREAT LEVEL</span>
                     <span class="threat-value" id="global-threat-value">MODERATE</span>
@@ -171,7 +181,6 @@
                 </button>
             </div>
         </header>
-
 
         <div class="page active" id="page-dashboard">
             <div class="page-header">
@@ -261,24 +270,21 @@
                     </div>
                 </div>
 
-
                 <div class="card">
                     <div class="card-header">
                         <h2>Attack Vector Analysis</h2>
                         <span class="card-badge">Real-time</span>
                     </div>
-                    <canvas id="radarCanvas" width="260" height="260"></canvas>
+                    <canvas id="radarCanvas" width="350" height="350"></canvas>
                 </div>
-
 
                 <div class="card">
                     <div class="card-header">
                         <h2>Network Traffic Flow</h2>
                         <span class="card-badge live">LIVE</span>
                     </div>
-                    <canvas id="trafficCanvas" width="280" height="200"></canvas>
+                    <canvas id="trafficCanvas" width="400" height="300"></canvas>
                 </div>
-
 
                 <div class="card tall">
                     <div class="card-header">
@@ -287,7 +293,6 @@
                     </div>
                     <div class="threat-feed" id="threat-feed"></div>
                 </div>
-
 
                 <div class="card">
                     <div class="card-header">
@@ -342,11 +347,34 @@
                             </div>
                             <span class="layer-pct">100%</span>
                         </div>
+                        <div class="layer-item" data-layer="Cloud Guard">
+                            <div class="layer-info"><span class="layer-name">Cloud Architecture</span><span
+                                    class="layer-status active">ACTIVE</span></div>
+                            <div class="layer-bar">
+                                <div class="layer-fill" style="width:85%"></div>
+                            </div>
+                            <span class="layer-pct">85%</span>
+                        </div>
+                        <div class="layer-item" data-layer="API Sentinel">
+                            <div class="layer-info"><span class="layer-name">API Sentinel</span><span
+                                    class="layer-status active">ACTIVE</span></div>
+                            <div class="layer-bar">
+                                <div class="layer-fill" style="width:92%"></div>
+                            </div>
+                            <span class="layer-pct">92%</span>
+                        </div>
+                        <div class="layer-item" data-layer="Zero Trust">
+                            <div class="layer-info"><span class="layer-name">Zero Trust Proxy</span><span
+                                    class="layer-status active">ACTIVE</span></div>
+                            <div class="layer-bar">
+                                <div class="layer-fill" style="width:99%"></div>
+                            </div>
+                            <span class="layer-pct">99%</span>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-
 
         <div class="page" id="page-monitor">
             <div class="page-header">
@@ -372,6 +400,11 @@
                         <h2>Protocol Distribution</h2>
                     </div>
                     <canvas id="protocolCanvas" width="300" height="200"></canvas>
+                    <div class="card-graph-stats"
+                        style="display: flex; justify-content: space-around; margin-top: 10px; font-family: var(--font-mono); font-size: 0.65rem; border-top: 1px dotted var(--border); padding-top: 8px;">
+                        <div><span style="color: var(--text-muted)">Global flow:</span> 425pps</div>
+                        <div><span style="color: var(--text-muted)">Avg Payload:</span> 1.4kb</div>
+                    </div>
                 </div>
 
                 <div class="card">
@@ -379,10 +412,17 @@
                         <h2>Geographic Threat Origins</h2>
                     </div>
                     <div class="geo-map" id="geo-map" style="height: 220px;">
+                        <button class="map-fs-btn" onclick="toggleMapFullscreen()">⛶ Fullscreen</button>
                     </div>
                     <div class="geo-legend">
                         <span class="geo-key safe">● Trusted</span>
                         <span class="geo-key danger">● Threat Origin</span>
+                    </div>
+                    <div class="card-graph-stats"
+                        style="display: flex; justify-content: space-around; margin-top: 12px; font-family: var(--font-mono); font-size: 0.65rem; border-top: 1px solid var(--border); padding-top: 8px;">
+                        <div class="stat-tag"><span style="color: var(--text-muted)">Latency:</span> 18ms</div>
+                        <div class="stat-tag"><span style="color: var(--text-muted)">Feeds:</span> ThreatFox+URLhaus
+                        </div>
                     </div>
                 </div>
 
@@ -394,7 +434,6 @@
                 </div>
             </div>
         </div>
-
 
         <div class="page" id="page-anomaly">
             <div class="page-header">
@@ -466,6 +505,26 @@
                             </div>
                             <span class="acat-count" id="ac-zd">0</span>
                         </div>
+                        <div class="acat" data-type="credential-stuffing">
+                            <div class="acat-icon">🔑</div>
+                            <div class="acat-info">
+                                <span class="acat-name">Credential Stuffing</span>
+                                <div class="acat-bar">
+                                    <div class="acat-fill cs" style="width:0%"></div>
+                                </div>
+                            </div>
+                            <span class="acat-count" id="ac-cs">0</span>
+                        </div>
+                        <div class="acat" data-type="insider-threat">
+                            <div class="acat-icon">👤</div>
+                            <div class="acat-info">
+                                <span class="acat-name">Insider Threat</span>
+                                <div class="acat-bar">
+                                    <div class="acat-fill it" style="width:0%"></div>
+                                </div>
+                            </div>
+                            <span class="acat-count" id="ac-it">0</span>
+                        </div>
                     </div>
                 </div>
 
@@ -473,7 +532,13 @@
                     <div class="card-header">
                         <h2>Risk Score Distribution</h2>
                     </div>
-                    <canvas id="riskDistCanvas" width="280" height="200"></canvas>
+                    <canvas id="riskDistCanvas" width="450" height="300"></canvas>
+                    <div class="card-graph-stats"
+                        style="display: flex; justify-content: space-around; margin-top: 15px; font-family: var(--font-mono); font-size: 0.7rem;">
+                        <div class="stat-tag"><span style="color: var(--text-muted)">Range:</span> 0-100</div>
+                        <div class="stat-tag"><span style="color: var(--text-muted)">Frequency:</span> 1.2Hz</div>
+                        <div class="stat-tag"><span style="color: var(--text-muted)">Confidence:</span> 94%</div>
+                    </div>
                 </div>
 
                 <div class="card full-width">
@@ -484,7 +549,6 @@
                 </div>
             </div>
         </div>
-
 
         <div class="page" id="page-behavior">
             <div class="page-header">
@@ -584,7 +648,6 @@
                 </div>
             </div>
         </div>
-
 
         <div class="page" id="page-response">
             <div class="page-header">
@@ -712,7 +775,6 @@
             </div>
         </div>
 
-
         <div class="page" id="page-forensics">
             <div class="page-header">
                 <h1>Forensic Audit Logs</h1>
@@ -772,7 +834,6 @@
             </div>
         </div>
 
-
         <div class="page" id="page-learning">
             <div class="page-header">
                 <h1>Machine Learning Engine</h1>
@@ -797,6 +858,12 @@
                                 id="ml-vacc">0.0%</span></div>
                         <div class="ts"><span class="ts-l">F1 Score</span><span class="ts-v" id="ml-f1">0.000</span>
                         </div>
+                    </div>
+                    <div class="card-graph-stats"
+                        style="display: flex; justify-content: space-between; margin-top: 10px; font-family: var(--font-mono); font-size: 0.65rem; color: var(--text-muted); opacity: 0.8;">
+                        <span>Kernel: AEGIS-R7</span>
+                        <span>Params: 1.2M</span>
+                        <span>Optimizer: Adamax</span>
                     </div>
                 </div>
 
@@ -867,14 +934,12 @@
             </div>
         </div>
 
-
         <div class="page" id="page-agents">
             <div class="page-header">
                 <h1>Autonomous Multi-Agent Network</h1>
                 <p>A Head Agent (War Room Orchestrator) and 4 specialized agents collaborating to monitor, detect,
                     assess, respond &amp; audit in real-time</p>
             </div>
-
 
             <div class="agent-canvas-wrap card">
                 <div class="card-header">
@@ -894,158 +959,6 @@
                 </div>
             </div>
 
-
-            <div class="agents-grid">
-
-
-                <div class="agent-card head-agent" id="agent-head">
-                    <div class="agent-card-top">
-                        <div class="agent-avatar head">&#9673;</div>
-                        <div class="agent-meta">
-                            <span class="agent-name">Head Agent</span>
-                            <span class="agent-role">War Room Orchestrator</span>
-                        </div>
-                        <div class="agent-online-badge" id="head-badge">ONLINE</div>
-                    </div>
-                    <div class="agent-desc">Central orchestrator that receives intel from all sub-agents, evaluates
-                        global risk posture, dispatches directives and maintains situational awareness across the entire
-                        defense fabric.</div>
-                    <div class="agent-metrics">
-                        <div class="am-item"><span class="am-l">Directives Sent</span><span class="am-v"
-                                id="am-head-dir">0</span></div>
-                        <div class="am-item"><span class="am-l">Escalations</span><span class="am-v"
-                                id="am-head-esc">0</span></div>
-                        <div class="am-item"><span class="am-l">Uptime</span><span class="am-v">99.99%</span></div>
-                    </div>
-                    <div class="agent-log" id="log-head"></div>
-                </div>
-
-
-                <div class="agent-card mon-agent" id="agent-mon">
-                    <div class="agent-card-top">
-                        <div class="agent-avatar mon">&#9678;</div>
-                        <div class="agent-meta">
-                            <span class="agent-name">Monitoring &amp; Detection Agent</span>
-                            <span class="agent-role">Sensor Fusion &amp; Alert Engine</span>
-                        </div>
-                        <div class="agent-online-badge" id="mon-badge">ONLINE</div>
-                    </div>
-                    <div class="agent-desc">Continuously ingests network flows, system logs, and endpoint telemetry.
-                        Applies statistical and ML-based detection to identify anomalies and relay structured alerts to
-                        the Head Agent.</div>
-                    <div class="agent-metrics">
-                        <div class="am-item"><span class="am-l">Events Scanned</span><span class="am-v"
-                                id="am-mon-ev">0</span></div>
-                        <div class="am-item"><span class="am-l">Alerts Raised</span><span class="am-v"
-                                id="am-mon-al">0</span></div>
-                        <div class="am-item"><span class="am-l">False Positive Rate</span><span class="am-v"
-                                id="am-mon-fp">1.2%</span></div>
-                    </div>
-                    <div class="agent-sensor-bars" id="sensor-bars">
-                        <div class="sb-row"><span class="sb-lbl">Network</span>
-                            <div class="sb-bar">
-                                <div class="sb-fill net" id="sb-net"></div>
-                            </div>
-                        </div>
-                        <div class="sb-row"><span class="sb-lbl">Endpoint</span>
-                            <div class="sb-bar">
-                                <div class="sb-fill end" id="sb-end"></div>
-                            </div>
-                        </div>
-                        <div class="sb-row"><span class="sb-lbl">Log Stream</span>
-                            <div class="sb-bar">
-                                <div class="sb-fill log" id="sb-log"></div>
-                            </div>
-                        </div>
-                        <div class="sb-row"><span class="sb-lbl">Cloud API</span>
-                            <div class="sb-bar">
-                                <div class="sb-fill cld" id="sb-cld"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="agent-log" id="log-mon"></div>
-                </div>
-
-
-                <div class="agent-card tia-agent" id="agent-tia">
-                    <div class="agent-card-top">
-                        <div class="agent-avatar tia">&#9830;</div>
-                        <div class="agent-meta">
-                            <span class="agent-name">Threat Intel &amp; Risk Assessment Agent</span>
-                            <span class="agent-role">IOC Enrichment &amp; CVSS Scorer</span>
-                        </div>
-                        <div class="agent-online-badge" id="tia-badge">ONLINE</div>
-                    </div>
-                    <div class="agent-desc">Enriches alerts with external threat intelligence (IOCs, CVEs, TTPs),
-                        computes dynamic CVSS-based risk scores and predicts likely attack progression paths for Head
-                        Agent decision-making.</div>
-                    <div class="agent-metrics">
-                        <div class="am-item"><span class="am-l">IOCs Enriched</span><span class="am-v"
-                                id="am-tia-ioc">0</span></div>
-                        <div class="am-item"><span class="am-l">Risk Score (Avg)</span><span class="am-v"
-                                id="am-tia-risk">—</span></div>
-                        <div class="am-item"><span class="am-l">CVEs Matched</span><span class="am-v"
-                                id="am-tia-cve">0</span></div>
-                    </div>
-                    <div class="risk-gauge-container">
-                        <canvas id="riskGaugeCanvas" width="220" height="120"></canvas>
-                        <div class="rg-label" id="rg-label">Computing...</div>
-                    </div>
-                    <div class="agent-log" id="log-tia"></div>
-                </div>
-
-
-                <div class="agent-card rca-agent" id="agent-rca">
-                    <div class="agent-card-top">
-                        <div class="agent-avatar rca">&#10006;</div>
-                        <div class="agent-meta">
-                            <span class="agent-name">Response &amp; Containment Agent</span>
-                            <span class="agent-role">Autonomous Countermeasure Executor</span>
-                        </div>
-                        <div class="agent-online-badge" id="rca-badge">ONLINE</div>
-                    </div>
-                    <div class="agent-desc">Receives directives from the Head Agent and autonomously executes
-                        countermeasures: isolates network segments, deploys honeypots, updates firewall rules, and
-                        applies virtual patches — all without human intervention.</div>
-                    <div class="agent-metrics">
-                        <div class="am-item"><span class="am-l">Actions Executed</span><span class="am-v"
-                                id="am-rca-act">0</span></div>
-                        <div class="am-item"><span class="am-l">Avg Response Time</span><span class="am-v"
-                                id="am-rca-time">—</span></div>
-                        <div class="am-item"><span class="am-l">Rollbacks</span><span class="am-v"
-                                id="am-rca-roll">0</span></div>
-                    </div>
-                    <div class="rca-actions" id="rca-actions"></div>
-                    <div class="agent-log" id="log-rca"></div>
-                </div>
-
-
-                <div class="agent-card lea-agent" id="agent-lea">
-                    <div class="agent-card-top">
-                        <div class="agent-avatar lea">&#9744;</div>
-                        <div class="agent-meta">
-                            <span class="agent-name">Learning &amp; Audit Agent</span>
-                            <span class="agent-role">Continuous Learning &amp; Compliance Recorder</span>
-                        </div>
-                        <div class="agent-online-badge" id="lea-badge">ONLINE</div>
-                    </div>
-                    <div class="agent-desc">Learns from every incident by updating threat models with new attack
-                        patterns. Simultaneously generates tamper-resistant forensic logs, feeds data back to the ML
-                        engine, and maintains regulatory audit trails.</div>
-                    <div class="agent-metrics">
-                        <div class="am-item"><span class="am-l">Model Updates</span><span class="am-v"
-                                id="am-lea-upd">0</span></div>
-                        <div class="am-item"><span class="am-l">Audit Records</span><span class="am-v"
-                                id="am-lea-aud">0</span></div>
-                        <div class="am-item"><span class="am-l">Knowledge Base</span><span class="am-v" id="am-lea-kb">0
-                                entries</span></div>
-                    </div>
-                    <div class="agent-log" id="log-lea"></div>
-                </div>
-
-            </div>
-
-
             <div class="card" style="margin-top:16px">
                 <div class="card-header">
                     <h2>Inter-Agent Message Bus</h2>
@@ -1054,12 +967,37 @@
                 <div class="agent-msgbus" id="agent-msgbus"></div>
             </div>
 
+            <div class="card" style="margin-top:24px">
+                <div class="card-header">
+                    <h2>Topology Link Efficiency</h2>
+                </div>
+                <div class="graph-details-row"
+                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; padding: 10px 0;">
+                    <div class="g-stat">
+                        <span
+                            style="display:block; font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase;">Signal
+                            Integrity</span>
+                        <span style="font-family: var(--font-mono); font-size: 1.2rem; color: var(--cyan);">99.8%</span>
+                    </div>
+                    <div class="g-stat">
+                        <span
+                            style="display:block; font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase;">Sync
+                            Latency</span>
+                        <span style="font-family: var(--font-mono); font-size: 1.2rem; color: var(--green);">4ms</span>
+                    </div>
+                    <div class="g-stat">
+                        <span
+                            style="display:block; font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase;">Mesh
+                            Hop Count</span>
+                        <span style="font-family: var(--font-mono); font-size: 1.2rem; color: var(--purple);">1.4
+                            avg</span>
+                    </div>
+                </div>
+            </div>
+
         </div>
 
-
-
     </main>
-
 
     <div class="alert-overlay" id="alert-overlay" style="display:none">
         <div class="alert-panel">
